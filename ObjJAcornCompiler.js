@@ -732,7 +732,6 @@ ObjJAcornCompiler.prototype.setCompiledCode = function(stringBuffer)
      {
          this.compiledCode = stringBuffer.toString();
      }
-     console.log(this.compiledCode);
 }
 
 // This might not be used
