@@ -24,7 +24,7 @@
 {
 "use strict";
 
-exports.version = "0.3.4";
+exports.version = "0.3.5";
 exports.acorn = acorn;
 
 var Scope = function(prev, base)
