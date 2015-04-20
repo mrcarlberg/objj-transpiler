@@ -8,7 +8,8 @@ var infile, compiled, options = {}, acornOptions = {}, silent = false, code = tr
 
 function help(status) {
   console.log("usage: " + path.basename(process.argv[1]) + " infile [--ecma3|--ecma5] [--strict-semicolons] [--track-comments]");
-  console.log("        [--include-comments] [--include-comment-line-break] [(-o | --output) <path>");
+  console.log("        [--include-comments] [--include-comment-line-break] [--no-allow-trailing-commas]");
+  console.log("        [(-o | --output) <path>");
   console.log("        [--formatter <path>]  [--indent-tab] [--indent-width <n>] [--indent-string <string>]");
   console.log("        [--track-spaces] [--track-locations] [--no-objj] [--no-preprocess] [--old-safari-bug]");
   console.log("        [--no-debug-symbols] [--no-type-signatures] [--generate-objj]");
@@ -27,11 +28,11 @@ function defineMacro(macro) {
     options.macros = Object.create(null);
 
   var split = macro.split('='),
-      nameAndArgs = split[0],
+      nameAndArgs = split.shift(),
       splitNameAndArgs = nameAndArgs.split('('),
       name = splitNameAndArgs[0].trim(),
       args = splitNameAndArgs[1],
-      definition = split[1];
+      definition = split.join('=');
 
   if (args)
   {
@@ -68,6 +69,7 @@ for (var i = 2; i < process.argv.length; ++i) {
   if (arg == "--ecma3") acornOptions.ecmaVersion = 3;
   else if (arg == "--ecma5") acornOptions.ecmaVersion = 5;
   else if (arg == "--strict-semicolons") acornOptions.strictSemicolons = true;
+  else if (arg == "--no-allow-trailing-commas") acornOptions.allowTrailingCommas = false;
   else if (arg == "--track-comments") acornOptions.trackComments = true;
   else if (arg == "--include-comment-line-break") acornOptions.trackCommentsIncludeLineBreak = true;
   else if (arg == "--include-comments") options.includeComments = true, acornOptions.trackComments = true;
