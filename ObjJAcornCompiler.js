@@ -16,15 +16,15 @@
 (function(mod)
 {
     if (typeof exports == "object" && typeof module == "object")
-        return mod(exports, require("objj-acorn/acorn"), require("objj-acorn/util/walk"), require("source-map")); // CommonJS
+        return mod(exports, require("objj-parser/acorn"), require("objj-parser/util/walk"), require("source-map")); // CommonJS
     if (typeof define == "function" && define.amd)
-        return define(["exports", "objj-acorn/acorn", "objj-acorn/util/walk", "source-map"], mod); // AMD
+        return define(["exports", "objj-parser/acorn", "objj-parser/util/walk", "source-map"], mod); // AMD
     mod(this.objjCompiler || (this.objjCompiler = {}), acorn, acorn.walk, sourceMap); // Plain browser env
 })(function(exports, acorn, walk, sourceMap)
 {
 "use strict";
 
-exports.version = "0.3.5";
+exports.version = "0.3.6";
 exports.acorn = acorn;
 
 var Scope = function(prev, base)
