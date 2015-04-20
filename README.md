@@ -60,4 +60,3 @@ usage: objjc infile [--ecma3|--ecma5] [--strict-semicolons] [--track-comments]
 Objective-J limitations:
 It can't compile Objective-J code that depends on other Objective-J files. The Objective-J load and
 runtime is needed for this. But it will work as long as you declare any superclass in the same file.
-This will be fixed when the Objective-J load and runtime will be a node module
