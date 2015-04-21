@@ -1214,7 +1214,7 @@ BlockStatement: function(node, st, c, format) {
     }
     if (generate) {
       //Simulate a node for the last curly bracket
-      var endNode = { loc: { start: { line : node.loc.end.line, column: node.loc.end.column-1}}, source: node.loc.source};
+      var endNode = node.loc && { loc: { start: { line : node.loc.end.line, column: node.loc.end.column-1}}, source: node.loc.source};
       if (format) {
         buffer.concatFormat(format.beforeRightBrace);
         buffer.concat("}", endNode);
