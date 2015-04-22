@@ -575,6 +575,11 @@ ProtocolDef.prototype.getClassMethod = function(name) {
     return null;
 }
 
+var TypeDef = function(name)
+{
+    this.name = name;
+}
+
 // methodDef = {"types": types, "name": selector}
 var MethodDef = function(name, types)
 {
@@ -612,6 +617,9 @@ var isInInstanceof = acorn.makePredicate("in instanceof");
 
     // Pass in protocol definitions. New protocol definitions in source file will be added here when compiling.
     protocolDefs: function() { return Object.create(null) },
+
+    // Pass in typeDef definitions. New typeDef definitions in source file will be added here when compiling.
+    typeDefs: function() { return Object.create(null) },
 
     // Turn off `generate` to make the compile copy the code from the source file (and replace needed parts)
     // instead of generate it from the AST tree. The preprocessor does not work if this is turn off as it alters
@@ -669,6 +677,7 @@ var ObjJAcornCompiler = function(/*String*/ aString, /*CFURL*/ aURL, options)
     this.pass = options.pass;
     this.classDefs = options.classDefs;
     this.protocolDefs = options.protocolDefs;
+    this.typeDefs = options.typeDefs;
     this.generate = options.generate;
     this.createSourceMap = options.sourceMap;
     this.formatDescription = options.formatDescription;
@@ -892,6 +901,31 @@ ObjJAcornCompiler.prototype.getProtocolDef = function(/* String */ aProtocolName
 
     return null;
 //  protocolDef = {"name": protocolName, "protocols": Object.create(null), "required": Object.create(null), "optional": Object.create(null)};
+}
+
+ObjJAcornCompiler.prototype.getTypeDef = function(/* String */ aTypeDefName)
+{
+    if (!aTypeDefName)
+        return null;
+
+    var t = this.typeDefs[aTypeDefName];
+
+    if (t)
+        return t;
+
+    if (typeof objj_getTypeDef === 'function')
+    {
+        var aTypeDef = objj_getTypeDef(aTypeDefName);
+        if (aTypeDef)
+        {
+            var typeDefName = typeDef_getName(aTypeDef)
+            t = new TypeDef(typeDefName);
+            this.typeDefs[typeDefName] = t;
+            return t;
+        }
+    }
+
+    return null;
 }
 
 ObjJAcornCompiler.methodDefsFromMethodList = function(/* Array */ methodList)
@@ -2397,13 +2431,20 @@ ClassDeclarationStatement: function(node, st, c, format) {
         {
             var ivarDecl = node.ivardeclarations[i],
                 ivarType = ivarDecl.ivartype ? ivarDecl.ivartype.name : null,
+                ivarTypeIsClass = ivarDecl.ivartype ? ivarDecl.ivartype.typeisclass : false,
                 ivarIdentifier = ivarDecl.id,
                 ivarName = ivarIdentifier.name,
                 ivars = classDef.ivars,
                 ivar = {"type": ivarType, "name": ivarName};
 
             if (ivars[ivarName])
-                throw compiler.error_message("Instance variable '" + ivarName + "'is already declared for class " + className, ivarIdentifier);
+                throw compiler.error_message("Instance variable '" + ivarName + "' is already declared for class " + className, ivarIdentifier);
+
+            var isTypeDefined = !ivarTypeIsClass || typeof global[ivarType] !== "undefined" || typeof window[ivarType] !== "undefined"
+                                || compiler.getClassDef(ivarType) || compiler.getTypeDef(ivarType) || ivarType == classDef.name;
+
+            if (!isTypeDefined)
+                compiler.addWarning(createMessage("Unknown type '" + ivarType + "' for ivar '" + ivarName + "'", ivarDecl.ivartype, compiler.source));
 
             if (generateObjJ) {
                 c(ivarDecl, st, "IvarDeclaration");
@@ -3128,6 +3169,34 @@ PreprocessStatement: function(node, st, c) {
       compiler.lastPos = node.start;
       compiler.jsBuffer.concat("//");
     }
+},
+TypeDefStatement: function(node, st, c) {
+    var compiler = st.compiler,
+        generate = compiler.generate,
+        buffer = compiler.jsBuffer,
+        typeDefName = node.typedefname.name,
+        typeDef = compiler.getTypeDef(typeDefName),
+        typeDefScope = new Scope(st);
+
+    if (typeDef)
+        throw compiler.error_message("Duplicate type definition " + typeDefName, node.typedefname);
+
+    if (!generate)
+        buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
+
+    buffer.concat("{var the_typedef = objj_allocateTypeDef(\"" + typeDefName + "\");");
+
+    typeDef = new TypeDef(typeDefName);
+    compiler.typeDefs[typeDefName] = typeDef;
+    typeDefScope.typeDef = typeDef;
+
+    buffer.concat("\nobjj_registerTypeDef(the_typedef);\n");
+
+    buffer.concat("}");
+
+    // Skip to the end
+    if (!generate)
+        compiler.lastPos = node.end;
 }
 });
 
