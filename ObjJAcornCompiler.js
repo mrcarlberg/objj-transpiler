@@ -2717,8 +2717,8 @@ ProtocolDeclarationStatement: function(node, st, c) {
     if (protocolDef)
         throw compiler.error_message("Duplicate protocol " + protocolName, node.protocolname);
 
-    compiler.imBuffer = new StringBuffer();
-    compiler.cmBuffer = new StringBuffer();
+    compiler.imBuffer = new StringBuffer(compiler.createSourceMap, compiler.URL);
+    compiler.cmBuffer = new StringBuffer(compiler.createSourceMap), compiler.URL;
 
     if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
 
@@ -2790,7 +2790,7 @@ ProtocolDeclarationStatement: function(node, st, c) {
         if (compiler.imBuffer.isEmpty())
         {
             buffer.concat("protocol_addMethodDescriptions(the_protocol, [");
-            buffer.atoms.push.apply(buffer.atoms, compiler.imBuffer.atoms); // FIXME: Move this append to StringBuffer
+            buffer.appendStringBuffer(compiler.imBuffer);
             buffer.concat("], true, true);\n");
         }
 
@@ -2798,7 +2798,7 @@ ProtocolDeclarationStatement: function(node, st, c) {
         if (compiler.cmBuffer.isEmpty())
         {
             buffer.concat("protocol_addMethodDescriptions(the_protocol, [");
-            buffer.atoms.push.apply(buffer.atoms, compiler.cmBuffer.atoms); // FIXME: Move this append to StringBuffer
+            buffer.appendStringBuffer(compiler.cmBuffer);
             buffer.concat("], true, false);\n");
         }
 
@@ -3109,20 +3109,19 @@ MessageSendExpression: function(node, st, c) {
 
     var selectors = node.selectors,
         nodeArguments = node.arguments,
-        argumentsLength = arguments.length,
+        argumentsLength = nodeArguments.length,
         firstSelector = selectors[0],
         selector = firstSelector ? firstSelector.name : "",    // There is always at least one selector
         parameters = node.parameters;
 
     if (generateObjJ) {
-        var size = nodeArguments.length;
-        for (var i = 0; i < size || (size === 0 && i === 0); i++) {
+        for (var i = 0; i < argumentsLength || (argumentsLength === 0 && i === 0); i++) {
             var selector = selectors[i];
 
             buffer.concat(" ");
             buffer.concat(selector ? selector.name : "");
 
-            if (size > 0) {
+            if (argumentsLength > 0) {
                 var argument = nodeArguments[i];
 
                 buffer.concat(":");
