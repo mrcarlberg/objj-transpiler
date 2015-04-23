@@ -2375,7 +2375,7 @@ ClassDeclarationStatement: function(node, st, c, format) {
     compiler.classBodyBuffer = new StringBuffer(compiler.createSourceMap, compiler.URL);      // TODO: Check if this is needed
 
     if (compiler.getTypeDef(className))
-        throw compiler.error_message(className + " is already declared as type", node.classname);
+        throw compiler.error_message(className + " is already declared as a type", node.classname);
 
 
     if (!generate) saveJSBuffer.concat(compiler.source.substring(compiler.lastPos, node.start));
@@ -3297,7 +3297,7 @@ ClassStatement: function(node, st, c) {
     var className = node.id.name;
 
     if (compiler.getTypeDef(className))
-        throw compiler.error_message(className + " is already declared as type", node.id);
+        throw compiler.error_message(className + " is already declared as a type", node.id);
 
     if (!compiler.getClassDef(className)) {
         compiler.classDefs[className] = new ClassDef(false, className);
