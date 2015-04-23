@@ -1228,7 +1228,12 @@ Program: function(node, st, c) {
 BlockStatement: function(node, st, c, format) {
     var compiler = st.compiler,
         generate = compiler.generate,
+        endOfScopeBody = st.endOfScopeBody,
         buffer;
+
+    if (endOfScopeBody)
+        delete st.endOfScopeBody;
+
     if (generate) {
       var skipIndentation = st.skipIndentation;
       buffer = compiler.jsBuffer;
@@ -1247,6 +1252,18 @@ BlockStatement: function(node, st, c, format) {
       c(node.body[i], st, "Statement");
     }
     if (generate) {
+      var maxReceiverLevel = st.maxReceiverLevel;
+      if (endOfScopeBody && maxReceiverLevel) {
+        buffer.concat(indentation);
+        buffer.concat("var ");
+        for (var i = 0; i < maxReceiverLevel; i++) {
+          if (i) buffer.concat(", ");
+          buffer.concat("___r");
+          buffer.concat((i + 1) + "");
+        }
+        buffer.concat(";\n");
+      }
+
       //Simulate a node for the last curly bracket
       var endNode = node.loc && { loc: { start: { line : node.loc.end.line, column: node.loc.end.column-1}}, source: node.loc.source};
       if (format) {
@@ -1545,6 +1562,7 @@ TryStatement: function(node, st, c, format) {
       }
       indentation += indentStep;
       inner.skipIndentation = true;
+      inner.endOfScopeBody = true;
       c(handler.body, inner, "ScopeBody");
       indentation = indentation.substring(indentationSize);
       inner.copyAddedSelfToIvarsToParent();
@@ -1771,6 +1789,7 @@ Function: function(node, st, c, format) {
     }
   }
   indentation += indentStep;
+  inner.endOfScopeBody = true;
   c(node.body, inner, "ScopeBody");
   indentation = indentation.substring(indentationSize);
   inner.copyAddedSelfToIvarsToParent();
@@ -2891,6 +2910,7 @@ MethodDeclarationStatement: function(node, st, c) {
 
         if (!generate) compiler.lastPos = node.startOfBody;
         indentation += indentStep;
+        methodScope.endOfScopeBody = true;
         c(node.body, methodScope, "Statement");
         indentation = indentation.substring(indentationSize);
         if (!generate) compiler.jsBuffer.concat(compiler.source.substring(compiler.lastPos, node.body.end));
@@ -2995,20 +3015,34 @@ MessageSendExpression: function(node, st, c) {
     }
     else
     {
+        if (!st.receiverLevel) st.receiverLevel = 0;
         if (!generate) buffer.concat(" "); // Add an extra space if it looks something like this: "return(<expression>)". No space between return and expression.
         if (generateObjJ) {
             buffer.concat("[", node);
         } else {
-            buffer.concat("objj_msgSend(", node);
+            buffer.concat("((___r");
+            buffer.concat(++st.receiverLevel + "");
+            buffer.concat(" = ");
         }
 
         c(node.object, st, "Expression");
 
+        if (!generateObjJ) {
+            buffer.concat("), ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" == null ? null : ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(".isa.objj_msgSend");
+        }
+
         if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, node.object.end));
+        if (!(st.maxReceiverLevel >= st.receiverLevel))
+            st.maxReceiverLevel = st.receiverLevel;
     }
 
     var selectors = node.selectors,
         nodeArguments = node.arguments,
+        argumentsLength = arguments.length,
         firstSelector = selectors[0],
         selector = firstSelector ? firstSelector.name : "",    // There is always at least one selector
         parameters = node.parameters;
@@ -3038,8 +3072,21 @@ MessageSendExpression: function(node, st, c) {
         }
         buffer.concat("]");
     } else {
+        if (!node.superObject) {
+            var totalNoOfParameters = argumentsLength;
+
+            if (node.parameters)
+                totalNoOfParameters += node.parameters.length;
+            if (totalNoOfParameters < 4) {
+                buffer.concat("" + totalNoOfParameters);
+            }
+
+            buffer.concat("(___r");
+            buffer.concat(st.receiverLevel + "");
+        }
+
         // Put together the selector. Maybe this should be done in the parser...
-        for (var i = 0; i < nodeArguments.length; i++)
+        for (var i = 0; i < argumentsLength; i++)
             if (i === 0)
                 selector += ":";
             else
@@ -3076,6 +3123,12 @@ MessageSendExpression: function(node, st, c) {
                 compiler.lastPos = parameter.end;
             }
         }
+
+        if (!node.superObject) {
+            buffer.concat(")");
+            st.receiverLevel--;
+        }
+
         buffer.concat(")");
     }
 
