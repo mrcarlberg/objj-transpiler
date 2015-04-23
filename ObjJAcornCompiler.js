@@ -716,7 +716,7 @@ var ObjJAcornCompiler = function(/*String*/ aString, /*CFURL*/ aURL, options)
         this.tokens = acorn.parse(aString, options.acornOptions);
     }
     catch (e) {
-        if (e.lineStart)
+        if (e.lineStart != null)
         {
             var message = this.prettifyMessage(e, "ERROR");
             console.log(message);
