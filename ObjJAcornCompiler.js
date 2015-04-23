@@ -3295,6 +3295,10 @@ ClassStatement: function(node, st, c) {
         c(node.id, st, "IdentifierName");
     }
     var className = node.id.name;
+
+    if (compiler.getTypeDef(className))
+        throw compiler.error_message(className + " is already declared as type", node.id);
+
     if (!compiler.getClassDef(className)) {
         compiler.classDefs[className] = new ClassDef(false, className);
     }
