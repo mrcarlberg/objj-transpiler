@@ -3282,8 +3282,6 @@ MessageSendExpression: function(node, st, c) {
         buffer.concat("]");
     } else {
         if (generate && !node.superObject) {
-            var totalNoOfParameters = argumentsLength;
-
             if (!inlineMsgSend) {
                 if (totalNoOfParameters < 4) {
                     buffer.concat("" + totalNoOfParameters);
