@@ -2716,7 +2716,7 @@ ClassDeclarationStatement: function(node, st, c, format) {
 
         // Remove all @accessors or we will get a recursive loop in infinity
         var b = getterSetterBuffer.toString().replace(/@accessors(\(.*\))?/g, "");
-        var imBuffer = exports.compileToIMBuffer(b, "Accessors", this.options);
+        var imBuffer = exports.compileToIMBuffer(b, "Accessors", compiler.options);
 
         // Add the accessors methods first to instance method buffer.
         // This will allow manually added set and get methods to override the compiler generated
