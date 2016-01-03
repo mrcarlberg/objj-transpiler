@@ -773,7 +773,7 @@ exports.compileFileDependencies = function(/*String*/ aString, /*CFURL*/ aURL, o
 ObjJAcornCompiler.prototype.compilePass2 = function()
 {
     ObjJAcornCompiler.currentCompileFile = this.URL;
-    this.pass = 2;
+    this.pass = this.options.pass = 2;
     this.jsBuffer = new StringBuffer(this.createSourceMap, this.URL);
 
     // To get the source mapping correct when the new Function construtor is used we add a
