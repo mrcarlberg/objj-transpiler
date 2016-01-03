@@ -11,7 +11,7 @@
 //
 // This file defines the main compiler interface.
 //
-// Copyright 2013, Martin Carlberg.
+// Copyright 2013, 2014, 2015, 2016, Martin Carlberg.
 
 (function(mod)
 {
@@ -657,6 +657,9 @@ var isInInstanceof = acorn.makePredicate("in instanceof");
 
     // Turn off `includeIvarTypeSignatures` to remove type information on ivars.
     includeIvarTypeSignatures: true,
+
+    // Turn off `inlineMsgSendFunctions` to use message send functions. Needed to use message send decorators.
+    inlineMsgSendFunctions: true,
   };
 
   function setupOptions(opts) {
@@ -2267,12 +2270,59 @@ ArrayLiteral: function(node, st, c) {
     }
 
     if (!generate) buffer.concat(" "); // Add an extra space if it looks something like this: "return(<expression>)". No space between return and expression.
+    if (!st.receiverLevel) st.receiverLevel = 0;
     if (generateObjJ) {
         buffer.concat("@[");
     } else if (!elementLength) {
-        buffer.concat("objj_msgSend(objj_msgSend(CPArray, \"alloc\"), \"init\")", node);
+        if (compiler.options.inlineMsgSendFunctions) {
+            buffer.concat("(___r");
+            buffer.concat(++st.receiverLevel + "");
+            buffer.concat(" = (CPArray.isa.method_msgSend[\"alloc\"] || _objj_forward)(CPArray, \"alloc\"), ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" == null ? null : (___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(".isa.method_msgSend[\"init\"] || _objj_forward)(___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(", \"init\"))");            
+        } else {
+            buffer.concat("(___r");
+            buffer.concat(++st.receiverLevel + "");
+            buffer.concat(" = CPArray.isa.objj_msgSend0(CPArray, \"alloc\"), ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" == null ? null : ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(".isa.objj_msgSend0(___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(", \"init\"))");
+        }
+
+        if (!(st.maxReceiverLevel >= st.receiverLevel))
+            st.maxReceiverLevel = st.receiverLevel;
     } else {
-        buffer.concat("objj_msgSend(objj_msgSend(CPArray, \"alloc\"), \"initWithObjects:count:\", [", node);
+        if (compiler.options.inlineMsgSendFunctions) {
+            buffer.concat("(___r");
+            buffer.concat(++st.receiverLevel + "");
+            buffer.concat(" = (CPArray.isa.method_msgSend[\"alloc\"] || _objj_forward)(CPArray, \"alloc\"), ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" == null ? null : (___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(".isa.method_msgSend[\"initWithObjects:count:\"] || _objj_forward)(___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(", \"initWithObjects:count:\", [");
+        } else {
+            buffer.concat("(___r");
+            buffer.concat(++st.receiverLevel + "");
+            buffer.concat(" = CPArray.isa.objj_msgSend0(CPArray, \"alloc\"), ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" == null ? null : ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(".isa.objj_msgSend2(___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(", \"initWithObjects:count:\", [");
+        }
+
+        if (!(st.maxReceiverLevel >= st.receiverLevel))
+            st.maxReceiverLevel = st.receiverLevel;
     }
     if (elementLength) {
         for (var i = 0; i < elementLength; i++) {
@@ -2285,11 +2335,13 @@ ArrayLiteral: function(node, st, c) {
             c(elt, st, "Expression");
             if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, elt.end));
         }
-        if (!generateObjJ) buffer.concat("], " + elementLength + ")");
+        if (!generateObjJ) buffer.concat("], " + elementLength + "))");
     }
 
     if (generateObjJ)
         buffer.concat("]");
+    else
+        st.receiverLevel--;
 
     if (!generate) compiler.lastPos = node.end;
 },
@@ -2305,6 +2357,7 @@ DictionaryLiteral: function(node, st, c) {
     }
 
     if (!generate) buffer.concat(" "); // Add an extra space if it looks something like this: "return(<expression>)". No space between return and expression.
+    if (!st.receiverLevel) st.receiverLevel = 0;
     if (generateObjJ) {
         buffer.concat("@{");
         for (var i = 0; i < keyLength; i++) {
@@ -2315,28 +2368,81 @@ DictionaryLiteral: function(node, st, c) {
         }
         buffer.concat("}");
     } else if (!keyLength) {
-        buffer.concat("objj_msgSend(objj_msgSend(CPDictionary, \"alloc\"), \"init\")", node);
+        if (compiler.options.inlineMsgSendFunctions) {
+            buffer.concat("(___r");
+            buffer.concat(++st.receiverLevel + "");
+            buffer.concat(" = (CPDictionary.isa.method_msgSend[\"alloc\"] || _objj_forward)(CPDictionary, \"alloc\"), ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" == null ? null : (___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(".isa.method_msgSend[\"init\"] || _objj_forward)(___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(", \"init\"))");
+        } else {
+            buffer.concat("(___r");
+            buffer.concat(++st.receiverLevel + "");
+            buffer.concat(" = CPDictionary.isa.objj_msgSend0(CPDictionary, \"alloc\"), ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" == null ? null : ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(".isa.objj_msgSend0(___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(", \"init\"))");
+        }
+
+        if (!(st.maxReceiverLevel >= st.receiverLevel))
+            st.maxReceiverLevel = st.receiverLevel;
     } else {
-        buffer.concat("objj_msgSend(objj_msgSend(CPDictionary, \"alloc\"), \"initWithObjectsAndKeys:\"", node);
+        if (compiler.options.inlineMsgSendFunctions) {
+            buffer.concat("(___r");
+            buffer.concat(++st.receiverLevel + "");
+            buffer.concat(" = (CPDictionary.isa.method_msgSend[\"alloc\"] || _objj_forward)(CPDictionary, \"alloc\"), ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" == null ? null : (___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(".isa.method_msgSend[\"initWithObjects:forKeys:\"] || _objj_forward)(___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(", \"initWithObjects:forKeys:\", [");
+        } else {
+            buffer.concat("(___r");
+            buffer.concat(++st.receiverLevel + "");
+            buffer.concat(" = CPDictionary.isa.objj_msgSend0(CPDictionary, \"alloc\"), ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" == null ? null : ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(".isa.objj_msgSend2(___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(", \"initWithObjects:forKeys:\", [");
+        }
+
+        if (!(st.maxReceiverLevel >= st.receiverLevel))
+            st.maxReceiverLevel = st.receiverLevel;
+
         for (var i = 0; i < keyLength; i++) {
-            var key = node.keys[i],
-                value = node.values[i];
+            var value = node.values[i];
 
-            buffer.concat(", ");
-
+            if (i) buffer.concat(", ");
             if (!generate) compiler.lastPos = value.start;
             c(value, st, "Expression");
             if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, value.end));
+        }
 
-            buffer.concat(", ");
+        buffer.concat("], [");
+
+        for (var i = 0; i < keyLength; i++) {
+            var key = node.keys[i];
+
+            if (i) buffer.concat(", ");
 
             if (!generate) compiler.lastPos = key.start;
             c(key, st, "Expression");
             if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, key.end));
         }
-        buffer.concat(")");
+        buffer.concat("]))");
     }
 
+    if (!generateObjJ)
+        st.receiverLevel--;
     if (!generate) compiler.lastPos = node.end;
 },
 ImportStatement: function(node, st, c) {
@@ -3042,13 +3148,36 @@ MethodDeclarationStatement: function(node, st, c) {
 MessageSendExpression: function(node, st, c) {
     var compiler = st.compiler,
         generate = compiler.generate,
+        inlineMsgSend = compiler.options.inlineMsgSendFunctions,
         buffer = compiler.jsBuffer,
         nodeObject = node.object,
+        selectors = node.selectors,
+        nodeArguments = node.arguments,
+        argumentsLength = nodeArguments.length,
+        firstSelector = selectors[0],
+        selector = firstSelector ? firstSelector.name : "",    // There is always at least one selector
+        parameters = node.parameters,
         generateObjJ = compiler.options.generateObjJ;
+
+    // Put together the selector. Maybe this should be done in the parser...
+    for (var i = 0; i < argumentsLength; i++) {
+        if (i !== 0) {
+            var nextSelector = selectors[i];
+            if (nextSelector)
+                selector += nextSelector.name;
+        }
+        selector += ":";
+    }
 
     if (!generate) {
         buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
         compiler.lastPos = nodeObject ? nodeObject.start : node.arguments.length ? node.arguments[0].start : node.end;
+    } else if (!inlineMsgSend) {
+        // Find out the total number of arguments so we can choose appropriate msgSend function. Only needed if call the function and not inline it
+        var totalNoOfParameters = argumentsLength;
+
+        if (parameters)
+            totalNoOfParameters += parameters.length;
     }
     if (node.superObject)
     {
@@ -3056,8 +3185,19 @@ MessageSendExpression: function(node, st, c) {
         if (generateObjJ) {
             buffer.concat("[super ");
         } else {
-            buffer.concat("objj_msgSendSuper(", node);
-            buffer.concat("{ receiver:self, super_class:" + (st.currentMethodType() === "+" ? compiler.currentSuperMetaClass : compiler.currentSuperClass ) + " }");
+            if (inlineMsgSend) {
+                buffer.concat("(");
+                buffer.concat(st.currentMethodType() === "+" ? compiler.currentSuperMetaClass : compiler.currentSuperClass);
+                buffer.concat(".method_dtable[\"");
+                buffer.concat(selector);
+                buffer.concat("\"] || _objj_forward)(self");
+            } else {
+                buffer.concat("objj_msgSendSuper");
+                if (totalNoOfParameters < 4) {
+                    buffer.concat("" + totalNoOfParameters);
+                }
+                buffer.concat("({ receiver:self, super_class:" + (st.currentMethodType() === "+" ? compiler.currentSuperMetaClass : compiler.currentSuperClass ) + " }");
+            }
         }
     }
     else
@@ -3084,6 +3224,8 @@ MessageSendExpression: function(node, st, c) {
                     c(nodeObject, st, "Expression");
                     buffer.concat(" == null ? null : ");
                 }
+                if (inlineMsgSend)
+                    buffer.concat("(");
                 c(nodeObject, st, "Expression");
             } else {
                 receiverIsNotSelf = true;
@@ -3094,25 +3236,26 @@ MessageSendExpression: function(node, st, c) {
                 c(nodeObject, st, "Expression");
                 buffer.concat("), ___r");
                 buffer.concat(st.receiverLevel + "");
-                buffer.concat(" == null ? null : ___r");
+                buffer.concat(" == null ? null : ");
+                if (inlineMsgSend)
+                    buffer.concat("(");
+                buffer.concat("___r");
                 buffer.concat(st.receiverLevel + "");
                 if (!(st.maxReceiverLevel >= st.receiverLevel))
                     st.maxReceiverLevel = st.receiverLevel;
             }
-            buffer.concat(".isa.objj_msgSend");
+            if (inlineMsgSend) {
+                buffer.concat(".isa.method_msgSend[\"");
+                buffer.concat(selector);
+                buffer.concat("\"] || _objj_forward)");
+            } else
+                buffer.concat(".isa.objj_msgSend");
         } else {
             buffer.concat(" "); // Add an extra space if it looks something like this: "return(<expression>)". No space between return and expression.
             buffer.concat("objj_msgSend(");
             buffer.concat(compiler.source.substring(compiler.lastPos, nodeObject.end));
         }
     }
-
-    var selectors = node.selectors,
-        nodeArguments = node.arguments,
-        argumentsLength = nodeArguments.length,
-        firstSelector = selectors[0],
-        selector = firstSelector ? firstSelector.name : "",    // There is always at least one selector
-        parameters = node.parameters;
 
     if (generateObjJ) {
         for (var i = 0; i < argumentsLength || (argumentsLength === 0 && i === 0); i++) {
@@ -3141,10 +3284,10 @@ MessageSendExpression: function(node, st, c) {
         if (generate && !node.superObject) {
             var totalNoOfParameters = argumentsLength;
 
-            if (node.parameters)
-                totalNoOfParameters += node.parameters.length;
-            if (totalNoOfParameters < 4) {
-                buffer.concat("" + totalNoOfParameters);
+            if (!inlineMsgSend) {
+                if (totalNoOfParameters < 4) {
+                    buffer.concat("" + totalNoOfParameters);
+                }
             }
 
             if (receiverIsIdentifier) {
@@ -3155,13 +3298,6 @@ MessageSendExpression: function(node, st, c) {
                 buffer.concat(st.receiverLevel + "");
             }
         }
-
-        // Put together the selector. Maybe this should be done in the parser...
-        for (var i = 0; i < argumentsLength; i++)
-            if (i === 0)
-                selector += ":";
-            else
-                selector += (selectors[i] ? selectors[i].name : "") + ":";
 
         buffer.concat(", \"");
         buffer.concat(selector); // FIXME: sel_getUid(selector + "") ? This FIXME is from the old preprocessor compiler
