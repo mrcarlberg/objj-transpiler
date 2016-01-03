@@ -674,7 +674,7 @@ var isInInstanceof = acorn.makePredicate("in instanceof");
 var ObjJAcornCompiler = function(/*String*/ aString, /*CFURL*/ aURL, options)
 {
     this.source = aString;
-    this.URL = aURL.toString();
+    this.URL = aURL && aURL.toString();
     options = setupOptions(options);
     this.options = options;
     this.pass = options.pass;
@@ -703,14 +703,14 @@ var ObjJAcornCompiler = function(/*String*/ aString, /*CFURL*/ aURL, options)
 
     if (acornOptions)
     {
-        if (!acornOptions.sourceFile)
+        if (!acornOptions.sourceFile && this.URL)
             acornOptions.sourceFile = this.URL.substr(this.URL.lastIndexOf('/') + 1);
         if (options.sourceMap && !acornOptions.locations)
             acornOptions.locations = true;
     }
     else
     {
-        acornOptions = options.acornOptions = {sourceFile: this.URL.substr(this.URL.lastIndexOf('/') + 1)};
+        acornOptions = options.acornOptions = this.URL && {sourceFile: this.URL.substr(this.URL.lastIndexOf('/') + 1)};
         if (options.sourceMap)
             acornOptions.locations = true;
     }
