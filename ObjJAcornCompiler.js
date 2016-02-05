@@ -19,7 +19,7 @@
         return mod(exports, require("objj-parser/acorn"), require("objj-parser/util/walk"), require("source-map")); // CommonJS
     if (typeof define == "function" && define.amd)
         return define(["exports", "objj-parser/acorn", "objj-parser/util/walk", "source-map"], mod); // AMD
-    mod(this.objjCompiler || (this.objjCompiler = {}), acorn, acorn.walk, sourceMap); // Plain browser env
+    mod(this.ObjJCompiler || (this.ObjJCompiler = {}), acorn, acorn.walk, sourceMap); // Plain browser env
 })(function(exports, acorn, walk, sourceMap)
 {
 "use strict";
@@ -690,7 +690,7 @@ var ObjJAcornCompiler = function(/*String*/ aString, /*CFURL*/ aURL, options)
     this.imBuffer = null;
     this.cmBuffer = null;
     this.dependencies = [];
-    this.warnings = [];
+    this.warningsAndErrors = [];
     this.lastPos = 0;
 
     //this.formatDescription = {
@@ -717,17 +717,16 @@ var ObjJAcornCompiler = function(/*String*/ aString, /*CFURL*/ aURL, options)
 
     try {
         this.tokens = acorn.parse(aString, options.acornOptions);
+        (this.pass === 2 && (options.includeComments || options.formatDescription) ? compileWithFormat : compile)(this.tokens, new Scope(null ,{ compiler: this }), this.pass === 2 ? pass2 : pass1);
     }
     catch (e) {
         if (e.lineStart != null)
         {
-            var message = this.prettifyMessage(e, "ERROR");
-            console.log(message);
+            e.messageForLine = aString.substring(e.lineStart, e.lineEnd);
         }
-        throw e;
+        this.addWarning(e);
+        return;
     }
-
-    (this.pass === 2 && (options.includeComments || options.formatDescription) ? compileWithFormat : compile)(this.tokens, new Scope(null ,{ compiler: this }), this.pass === 2 ? pass2 : pass1);
 
     this.setCompiledCode(this.jsBuffer);
 }
@@ -781,13 +780,12 @@ ObjJAcornCompiler.prototype.compilePass2 = function()
     if (this.createSourceMap)
         this.jsBuffer.concat("\n");
 
-    this.warnings = [];
-    compile(this.tokens, new Scope(null ,{ compiler: this }), pass2);
-
-    for (var i = 0; i < this.warnings.length; i++)
-    {
-       var message = this.prettifyMessage(this.warnings[i], "WARNING");
-       console.log(message);
+    this.warningsAndErrors = [];
+    try {
+        compile(this.tokens, new Scope(null ,{ compiler: this }), pass2);
+    } catch (e) {
+        this.addWarning(e);
+        return null;
     }
 
     this.setCompiledCode(this.jsBuffer);
@@ -795,9 +793,15 @@ ObjJAcornCompiler.prototype.compilePass2 = function()
     return this.compiledCode;
 }
 
+/*!
+    Add warning or error to the list
+ */
 ObjJAcornCompiler.prototype.addWarning = function(/* Warning */ aWarning)
 {
-    this.warnings.push(aWarning);
+    if (aWarning.path == null)
+        aWarning.path = this.URL;
+
+    this.warningsAndErrors.push(aWarning);
 }
 
 ObjJAcornCompiler.prototype.getIvarForClass = function(/* String */ ivarName, /* Scope */ scope)
@@ -975,14 +979,20 @@ ObjJAcornCompiler.prototype.map = function()
     return JSON.stringify(this.sourceMap);
 }
 
-ObjJAcornCompiler.prototype.prettifyMessage = function(/* Message */ aMessage, /* String */ messageType)
+ObjJAcornCompiler.prototype.prettifyMessage = function(/* Message */ aMessage)
 {
-    var line = this.source.substring(aMessage.lineStart, aMessage.lineEnd),
-        message = "\n" + line;
+    var line = aMessage.messageForLine,
+        message = "\n";
 
-    message += (new Array(aMessage.column + 1)).join(" ");
-    message += (new Array(Math.min(1, line.length) + 1)).join("^") + "\n";
-    message += messageType + " line " + aMessage.line + " in " + this.URL + ": " + aMessage.message;
+    if (line != null) {
+        message += line;
+
+        if (aMessage.messageOnColumn) {
+            message += (new Array(aMessage.messageOnColumn + 1)).join(" ");
+            message += (new Array(Math.min(1, line.length) + 1)).join("^") + "\n";
+        }
+    }
+    message += (aMessage.messageType || "ERROR") + " line " + (aMessage.messageOnLine || aMessage.line) + " in " + this.URL + ": " + aMessage.message;
 
     return message;
 }
@@ -990,9 +1000,16 @@ ObjJAcornCompiler.prototype.prettifyMessage = function(/* Message */ aMessage, /
 ObjJAcornCompiler.prototype.error_message = function(errorMessage, node)
 {
     var pos = acorn.getLineInfo(this.source, node.start),
-        syntaxError = {message: errorMessage, line: pos.line, column: pos.column, lineStart: pos.lineStart, lineEnd: pos.lineEnd};
+        syntaxError = new SyntaxError(errorMessage);
 
-    return new SyntaxError(this.prettifyMessage(syntaxError, "ERROR"));
+    syntaxError.messageOnLine = pos.line;
+    syntaxError.messageOnColumn = pos.column;
+    syntaxError.path = this.URL;
+    syntaxError.messageForNode = node;
+    syntaxError.messageType = "ERROR";
+    syntaxError.messageForLine = this.source.substring(pos.lineStart, pos.lineEnd);
+
+    return syntaxError;
 }
 
 ObjJAcornCompiler.prototype.pushImport = function(url)
@@ -1012,6 +1029,12 @@ function createMessage(/* String */ aMessage, /* SpiderMonkey AST node */ node, 
     var message = acorn.getLineInfo(code, node.start);
 
     message.message = aMessage;
+    // As a SyntaxError object can't change the property 'line' we also set the property 'messageOnLine'
+    message.messageOnLine = message.line;
+    message.messageOnColumn = message.column;
+    message.messageForNode = node;
+    message.messageType = "WARNING";
+    message.messageForLine = code.substring(message.lineStart, message.lineEnd);
 
     return message;
 }
