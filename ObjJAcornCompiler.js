@@ -25,7 +25,6 @@
 "use strict";
 
 exports.version = "0.3.7";
-exports.acorn = acorn;
 
 var Scope = function(prev, base)
 {
@@ -3119,7 +3118,7 @@ MethodDeclarationStatement: function(node, st, c) {
         def = st.protocolDef;
 
     if (!def)
-        throw "InternalError: MethodDeclaration without ClassDeclaration or ProtocolDeclaration at line: " + exports.acorn.getLineInfo(compiler.source, node.start).line;
+        throw "InternalError: MethodDeclaration without ClassDeclaration or ProtocolDeclaration at line: " + acorn.getLineInfo(compiler.source, node.start).line;
 
     // Create warnings if types does not corresponds to method declaration in superclass or interface declarations
     // If we don't find the method in superclass or interface declarations above or if it is a protocol
