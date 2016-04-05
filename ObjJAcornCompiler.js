@@ -2311,7 +2311,7 @@ ArrayLiteral: function(node, st, c) {
             buffer.concat(st.receiverLevel + "");
             buffer.concat(".isa.method_msgSend[\"init\"] || _objj_forward)(___r");
             buffer.concat(st.receiverLevel + "");
-            buffer.concat(", \"init\"))");            
+            buffer.concat(", \"init\"))");
         } else {
             buffer.concat("(___r");
             buffer.concat(++st.receiverLevel + "");
