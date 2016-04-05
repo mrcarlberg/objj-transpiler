@@ -132,9 +132,20 @@ Scope.prototype.copyAddedSelfToIvarsToParent = function()
 
 Scope.prototype.addMaybeWarning = function(warning)
 {
-    var rootScope = this.rootScope();
+    var rootScope = this.rootScope(),
+        maybeWarnings = rootScope._maybeWarnings;
 
-    (rootScope._maybeWarnings || (rootScope._maybeWarnings = [])).push(warning);
+    if (!maybeWarnings)
+        rootScope._maybeWarnings = maybeWarnings = [warning];
+    else
+    {
+        var lastWarning = maybeWarnings[maybeWarnings.length - 1];
+
+        // MessageSendExpression (and maybe others) will walk some expressions multible times and
+        // possible generate warnings multible times. Here we check if this warning is already added
+        if (!lastWarning.isEqualTo(warning))
+            maybeWarnings.push(warning);
+    }
 }
 
 Scope.prototype.maybeWarnings = function()
@@ -259,6 +270,15 @@ GlobalVariableMaybeWarning.prototype.checkIfWarning = function(/* Scope */ st)
 {
     var identifier = this.node.name;
     return !st.getLvar(identifier) && typeof global[identifier] === "undefined" && (typeof window === 'undefined' || typeof window[identifier] === "undefined") && !st.compiler.getClassDef(identifier);
+}
+
+GlobalVariableMaybeWarning.prototype.isEqualTo = function(/* GlobalVariableMaybeWarning */ aWarning)
+{
+    if (this.message.message !== aWarning.message.message) return false;
+    if (this.node.start !== aWarning.node.start) return false;
+    if (this.node.end !== aWarning.node.end) return false;
+
+    return true;
 }
 
 function StringBuffer(useSourceNode, file)
