@@ -1109,16 +1109,10 @@ ObjJAcornCompiler.prototype.map = function()
 ObjJAcornCompiler.prototype.prettifyMessage = function(/* Message */ aMessage)
 {
     var line = aMessage.messageForLine,
-        message = "\n";
+        message = "\n" + (line || "");
 
-    if (line != null) {
-        message += line;
-
-        if (aMessage.messageOnColumn) {
-            message += (new Array(aMessage.messageOnColumn + 1)).join(" ");
-            message += (new Array(Math.min(1, line.length) + 1)).join("^") + "\n";
-        }
-    }
+    message += (new Array((aMessage.messageOnColumn || 0) + 1)).join(" ");
+    if (line) message += (new Array(Math.min(1, line.length || 1) + 1)).join("^") + "\n";
     message += (aMessage.messageType || "ERROR") + " line " + (aMessage.messageOnLine || aMessage.line) + " in " + this.URL + ": " + aMessage.message;
 
     return message;
