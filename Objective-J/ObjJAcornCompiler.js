@@ -2450,7 +2450,9 @@ ArrayLiteral: function(node, st, c) {
             buffer.concat(++st.receiverLevel + "");
             buffer.concat(" = (CPArray.isa.method_msgSend[\"alloc\"] || _objj_forward)(CPArray, \"alloc\"), ___r");
             buffer.concat(st.receiverLevel + "");
-            buffer.concat(" == null ? null : (___r");
+            buffer.concat(" == null ? ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" : (___r");
             buffer.concat(st.receiverLevel + "");
             buffer.concat(".isa.method_msgSend[\"init\"] || _objj_forward)(___r");
             buffer.concat(st.receiverLevel + "");
@@ -2460,7 +2462,9 @@ ArrayLiteral: function(node, st, c) {
             buffer.concat(++st.receiverLevel + "");
             buffer.concat(" = CPArray.isa.objj_msgSend0(CPArray, \"alloc\"), ___r");
             buffer.concat(st.receiverLevel + "");
-            buffer.concat(" == null ? null : ___r");
+            buffer.concat(" == null ? ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" : ___r");
             buffer.concat(st.receiverLevel + "");
             buffer.concat(".isa.objj_msgSend0(___r");
             buffer.concat(st.receiverLevel + "");
@@ -2475,7 +2479,9 @@ ArrayLiteral: function(node, st, c) {
             buffer.concat(++st.receiverLevel + "");
             buffer.concat(" = (CPArray.isa.method_msgSend[\"alloc\"] || _objj_forward)(CPArray, \"alloc\"), ___r");
             buffer.concat(st.receiverLevel + "");
-            buffer.concat(" == null ? null : (___r");
+            buffer.concat(" == null ? ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" : (___r");
             buffer.concat(st.receiverLevel + "");
             buffer.concat(".isa.method_msgSend[\"initWithObjects:count:\"] || _objj_forward)(___r");
             buffer.concat(st.receiverLevel + "");
@@ -2485,7 +2491,9 @@ ArrayLiteral: function(node, st, c) {
             buffer.concat(++st.receiverLevel + "");
             buffer.concat(" = CPArray.isa.objj_msgSend0(CPArray, \"alloc\"), ___r");
             buffer.concat(st.receiverLevel + "");
-            buffer.concat(" == null ? null : ___r");
+            buffer.concat(" == null ? ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" : ___r");
             buffer.concat(st.receiverLevel + "");
             buffer.concat(".isa.objj_msgSend2(___r");
             buffer.concat(st.receiverLevel + "");
@@ -2544,7 +2552,9 @@ DictionaryLiteral: function(node, st, c) {
             buffer.concat(++st.receiverLevel + "");
             buffer.concat(" = (CPDictionary.isa.method_msgSend[\"alloc\"] || _objj_forward)(CPDictionary, \"alloc\"), ___r");
             buffer.concat(st.receiverLevel + "");
-            buffer.concat(" == null ? null : (___r");
+            buffer.concat(" == null ? ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" : (___r");
             buffer.concat(st.receiverLevel + "");
             buffer.concat(".isa.method_msgSend[\"init\"] || _objj_forward)(___r");
             buffer.concat(st.receiverLevel + "");
@@ -2554,7 +2564,9 @@ DictionaryLiteral: function(node, st, c) {
             buffer.concat(++st.receiverLevel + "");
             buffer.concat(" = CPDictionary.isa.objj_msgSend0(CPDictionary, \"alloc\"), ___r");
             buffer.concat(st.receiverLevel + "");
-            buffer.concat(" == null ? null : ___r");
+            buffer.concat(" == null ? ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" : ___r");
             buffer.concat(st.receiverLevel + "");
             buffer.concat(".isa.objj_msgSend0(___r");
             buffer.concat(st.receiverLevel + "");
@@ -2569,7 +2581,9 @@ DictionaryLiteral: function(node, st, c) {
             buffer.concat(++st.receiverLevel + "");
             buffer.concat(" = (CPDictionary.isa.method_msgSend[\"alloc\"] || _objj_forward)(CPDictionary, \"alloc\"), ___r");
             buffer.concat(st.receiverLevel + "");
-            buffer.concat(" == null ? null : (___r");
+            buffer.concat(" == null ? ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" : (___r");
             buffer.concat(st.receiverLevel + "");
             buffer.concat(".isa.method_msgSend[\"initWithObjects:forKeys:\"] || _objj_forward)(___r");
             buffer.concat(st.receiverLevel + "");
@@ -2579,7 +2593,9 @@ DictionaryLiteral: function(node, st, c) {
             buffer.concat(++st.receiverLevel + "");
             buffer.concat(" = CPDictionary.isa.objj_msgSend0(CPDictionary, \"alloc\"), ___r");
             buffer.concat(st.receiverLevel + "");
-            buffer.concat(" == null ? null : ___r");
+            buffer.concat(" == null ? ___r");
+            buffer.concat(st.receiverLevel + "");
+            buffer.concat(" : ___r");
             buffer.concat(st.receiverLevel + "");
             buffer.concat(".isa.objj_msgSend2(___r");
             buffer.concat(st.receiverLevel + "");
@@ -3411,7 +3427,9 @@ MessageSendExpression: function(node, st, c) {
                 if (receiverIsNotSelf) {
                     buffer.concat("(", node);
                     c(nodeObject, st, "Expression");
-                    buffer.concat(" == null ? null : ", node);
+                    buffer.concat(" == null ? ", node);
+                    c(nodeObject, st, "Expression");
+                    buffer.concat(" : ", node);
                 }
                 if (inlineMsgSend)
                     buffer.concat("(", node);
@@ -3424,7 +3442,9 @@ MessageSendExpression: function(node, st, c) {
                 c(nodeObject, st, "Expression");
                 buffer.concat(")", node);
                 buffer.concat(", ___r" + st.receiverLevel, node);
-                buffer.concat(" == null ? null : ", node);
+                buffer.concat(" == null ? ", node);
+                buffer.concat("___r" + st.receiverLevel, node);
+                buffer.concat(" : ", node);
                 if (inlineMsgSend)
                     buffer.concat("(", node);
                 buffer.concat("___r" + st.receiverLevel, node);
