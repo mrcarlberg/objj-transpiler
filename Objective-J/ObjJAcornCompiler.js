@@ -722,7 +722,6 @@ var reservedIdentifiers = acorn.makePredicate("self _cmd undefined localStorage 
 var wordPrefixOperators = acorn.makePredicate("delete in instanceof new typeof void");
 
 var isLogicalBinary = acorn.makePredicate("LogicalExpression BinaryExpression");
-var isInInstanceof = acorn.makePredicate("in instanceof");
 
 var warningUnusedButSetVariable = {name: "unused-but-set-variable"};
 var warningShadowIvar = {name: "shadow-ivar"};
@@ -1333,7 +1332,6 @@ function compileWithFormat(node, state, visitor) {
     function c(node, st, override) {
         var compiler = st.compiler,
             includeComments = compiler.includeComments,
-            parentNode = st.currentNode(),
             localLastNode = lastNode,
             sameNode = localLastNode === node;
         //console.log(override || node.type);
@@ -2330,8 +2328,7 @@ UpdateExpression: function(node, st, c) {
 },
 BinaryExpression: function(node, st, c, format) {
     var compiler = st.compiler,
-        generate = compiler.generate,
-        operatorType = isInInstanceof(node.operator);
+        generate = compiler.generate;
     (generate && nodePrecedence(node, node.left) ? surroundExpression(c) : c)(node.left, st, "Expression");
     if (generate) {
         var buffer = compiler.jsBuffer;
