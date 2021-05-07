@@ -309,7 +309,7 @@ StringBuffer.prototype.toStringString = function()
 
 StringBuffer.prototype.toStringSourceNode = function()
 {
-    return this.rootNode.toStringWithSourceMap({file: this.file});
+    return this.rootNode.toStringWithSourceMap({file: this.file.substr(this.file.lastIndexOf('/') + 1) + "s", sourceRoot:this.file.substr(0, this.file.lastIndexOf('/') + 1)});
 }
 
 StringBuffer.prototype.concatString = function(aString)
