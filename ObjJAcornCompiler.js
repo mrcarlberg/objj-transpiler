@@ -2763,7 +2763,13 @@ ClassDeclarationStatement: function(node, st, c, format) {
         getterSetterBuffer.concat("\n@end");
 
         // Remove all @accessors or we will get a recursive loop in infinity
-        var b = getterSetterBuffer.toString().replace(/@accessors(\(.*\))?/g, "");
+        var b = getterSetterBuffer.toString();
+
+        if (compiler.createSourceMap)
+            b = b.code;
+
+        b = b.replace(/@accessors(\(.*\))?/g, "");
+
         var imBuffer = exports.compileToIMBuffer(b, "Accessors", compiler.options);
 
         // Add the accessors methods first to instance method buffer.
