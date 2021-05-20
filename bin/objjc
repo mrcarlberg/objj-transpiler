@@ -145,25 +145,55 @@ try {
       options.acornOptions = acornOptions;
 
   compiled = compiler.compile(source, infile, options);
+
+  var anyErrors = false;
+
+  for (var i = 0; i < compiled.warningsAndErrors.length; i++)
+  {
+    var warning = compiled.warningsAndErrors[i],
+        message = compiled.prettifyMessage(warning);
+
+    var warningIsError = warning.messageType === "ERROR";
+
+    // Set anyErrors to 'true' if there are any errors in the list
+    anyErrors = anyErrors || warningIsError;
+    (warningIsError ? console.error : console.log)(message);
+  }
 } catch(e) {
-  console.log(e.message);
+  console.error(e.message);
   process.exit(1);
 }
 
-if (!silent && !output) {
-  if (code)
-    console.log(compiled.code());
-  if (map)
-    console.log(compiled.map());
-  if (ast)
-    console.log(compiled.ast());
+var writeToConsole = !silent && !output;
+
+if (code) {
+  var generatedCode = compiled.code();
+  if (generatedCode) {
+    if (writeToConsole) console.log(generatedCode);
+    if (output) fs.writeFileSync(outputFilename + ".js", generatedCode);
+  } else {
+    console.error("<No code generated>");
+  }
 }
 
-if (output) {
-  if (code)
-    fs.writeFileSync(outputFilename + ".js", compiled.code());
-  if (map)
-    fs.writeFileSync(outputFilename + ".map", compiled.map());
-  if (ast)
-    fs.writeFileSync(outputFilename + ".ast", compiled.ast());
+if (map) {
+  var generatedMap = compiled.map();
+  if (generatedMap) {
+    if (writeToConsole) console.log(generatedMap);
+    if (output) fs.writeFileSync(outputFilename + ".map", generatedMap);
+  } else {
+    console.error("<No sourcemap generated>");
+  }
 }
+
+if (ast) {
+  var generatedAst = compiled.ast();
+  if (generatedAst) {
+    if (writeToConsole) console.log(generatedAst);
+    if (output) fs.writeFileSync(outputFilename + ".ast", generatedAst);
+  } else {
+    console.error("<No ast generated>");
+  }
+}
+
+process.exit(anyErrors ? 1 : 0);
