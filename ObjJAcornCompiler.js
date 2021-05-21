@@ -2884,7 +2884,7 @@ ClassDeclarationStatement: function(node, st, c, format) {
             // It has a interface declaration already
             throw compiler.error_message("Duplicate interface definition for class " + className, node.classname);
         var superClassDef = compiler.getClassDef(node.superclassname.name);
-        if (!superClassDef)
+        if (!superClassDef && !generateObjJ) // Don't throw error for this when generating Objective-J code
         {
             var errorMessage = "Can't find superclass " + node.superclassname.name;
             if (ObjJAcornCompiler.importStack) for (var i = ObjJAcornCompiler.importStack.length; --i >= 0;)
