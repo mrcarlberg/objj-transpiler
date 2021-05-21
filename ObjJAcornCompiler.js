@@ -2508,6 +2508,7 @@ MemberExpression: function(node, st, c) {
 Identifier: function(node, st, c) {
     var compiler = st.compiler,
         generate = compiler.generate,
+        generateObjJ = compiler.options.generateObjJ,
         identifier = node.name;
     if (!st.isPropertyKey) {
         var lvarScope = st.getLvarScope(identifier, true); // Only look inside method/function scope
@@ -2532,7 +2533,7 @@ Identifier: function(node, st, c) {
                     // Save the index in where the "self." string is stored and the node.
                     // These will be used if we find a variable declaration that is hoisting this identifier.
                     ((st.addedSelfToIvars || (st.addedSelfToIvars = Object.create(null)))[identifier] || (st.addedSelfToIvars[identifier] = [])).push({node: node, index: compiler.jsBuffer.length()});
-                    compiler.jsBuffer.concat("self.", node);
+                    if (!generateObjJ) compiler.jsBuffer.concat("self.", node);
                 }
             } else if (!reservedIdentifiers(identifier)) {  // Don't check for warnings if it is a reserved word like self, localStorage, _cmd, etc...
                 var message,
