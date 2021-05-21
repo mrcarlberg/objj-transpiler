@@ -2985,7 +2985,7 @@ ClassDeclarationStatement: function(node, st, c, format) {
             // Check if ivar is already declared in this class or its super classes.
             checkIfIvarIsAlreadyDeclaredAndInSuperClass(classDef, checkIfIvarIsAlreadyDeclaredAndInSuperClass);
 
-            var isTypeDefined = !ivarTypeIsClass || typeof global[ivarType] !== "undefined" || typeof window[ivarType] !== "undefined"
+            var isTypeDefined = !ivarTypeIsClass || typeof global[ivarType] !== "undefined" || (typeof window !== "undefined" && typeof window[ivarType] !== "undefined")
                                 || compiler.getClassDef(ivarType) || compiler.getTypeDef(ivarType) || ivarType == classDef.name;
 
             if (!isTypeDefined && compiler.options.warnings.includes(warningUnknownIvarType))
