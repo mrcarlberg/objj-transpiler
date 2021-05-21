@@ -3603,61 +3603,66 @@ MessageSendExpression: function(node, st, c) {
     }
     else
     {
-        if (generate) {
-            // If the recevier is not an identifier or an ivar that should have 'self.' infront we need to assign it to a temporary variable
-            // If it is 'self' we assume it will never be nil and remove that test
-            var receiverIsIdentifier = nodeObject.type === "Identifier" && !(st.currentMethodType() === "-" && compiler.getIvarForClass(nodeObject.name, st) && !st.getLvar(nodeObject.name, true)),
-                selfLvar,
-                receiverIsNotSelf;
-
-            if (receiverIsIdentifier) {
-                var name = nodeObject.name,
-                    selfLvar = st.getLvar(name);
-
-                if (name === "self") {
-                    receiverIsNotSelf = !selfLvar || !selfLvar.scope || selfLvar.scope.assignmentToSelf;
-                } else {
-                    receiverIsNotSelf = !!selfLvar || !compiler.getClassDef(name);
-                }
-
-                if (receiverIsNotSelf) {
-                    buffer.concat("(", node);
-                    c(nodeObject, st, "Expression");
-                    buffer.concat(" == null ? ", node);
-                    c(nodeObject, st, "Expression");
-                    buffer.concat(" : ", node);
-                }
-                if (inlineMsgSend)
-                    buffer.concat("(", node);
-                c(nodeObject, st, "Expression");
-            } else {
-                receiverIsNotSelf = true;
-                if (!st.receiverLevel) st.receiverLevel = 0;
-                buffer.concat("((___r" + ++st.receiverLevel, node);
-                buffer.concat(" = ", node);
-                c(nodeObject, st, "Expression");
-                buffer.concat(")", node);
-                buffer.concat(", ___r" + st.receiverLevel, node);
-                buffer.concat(" == null ? ", node);
-                buffer.concat("___r" + st.receiverLevel, node);
-                buffer.concat(" : ", node);
-                if (inlineMsgSend)
-                    buffer.concat("(", node);
-                buffer.concat("___r" + st.receiverLevel, node);
-                if (!(st.maxReceiverLevel >= st.receiverLevel))
-                    st.maxReceiverLevel = st.receiverLevel;
-            }
-            if (inlineMsgSend) {
-                buffer.concat(".isa.method_msgSend[\"", node);
-                buffer.concat(selector, node);
-                buffer.concat("\"] || _objj_forward)", node);
-            } else {
-                buffer.concat(".isa.objj_msgSend", node);
-            }
+        if (generateObjJ) {
+            buffer.concat("[");
+            c(nodeObject, st, "Expression");
         } else {
-            buffer.concat(" "); // Add an extra space if it looks something like this: "return(<expression>)". No space between return and expression.
-            buffer.concat("objj_msgSend(");
-            buffer.concat(compiler.source.substring(compiler.lastPos, nodeObject.end));
+            if (generate) {
+                // If the recevier is not an identifier or an ivar that should have 'self.' infront we need to assign it to a temporary variable
+                // If it is 'self' we assume it will never be nil and remove that test
+                var receiverIsIdentifier = nodeObject.type === "Identifier" && !(st.currentMethodType() === "-" && compiler.getIvarForClass(nodeObject.name, st) && !st.getLvar(nodeObject.name, true)),
+                    selfLvar,
+                    receiverIsNotSelf;
+
+                if (receiverIsIdentifier) {
+                    var name = nodeObject.name,
+                        selfLvar = st.getLvar(name);
+
+                    if (name === "self") {
+                        receiverIsNotSelf = !selfLvar || !selfLvar.scope || selfLvar.scope.assignmentToSelf;
+                    } else {
+                        receiverIsNotSelf = !!selfLvar || !compiler.getClassDef(name);
+                    }
+
+                    if (receiverIsNotSelf) {
+                        buffer.concat("(", node);
+                        c(nodeObject, st, "Expression");
+                        buffer.concat(" == null ? ", node);
+                        c(nodeObject, st, "Expression");
+                        buffer.concat(" : ", node);
+                    }
+                    if (inlineMsgSend)
+                        buffer.concat("(", node);
+                    c(nodeObject, st, "Expression");
+                } else {
+                    receiverIsNotSelf = true;
+                    if (!st.receiverLevel) st.receiverLevel = 0;
+                    buffer.concat("((___r" + ++st.receiverLevel, node);
+                    buffer.concat(" = ", node);
+                    c(nodeObject, st, "Expression");
+                    buffer.concat(")", node);
+                    buffer.concat(", ___r" + st.receiverLevel, node);
+                    buffer.concat(" == null ? ", node);
+                    buffer.concat("___r" + st.receiverLevel, node);
+                    buffer.concat(" : ", node);
+                    if (inlineMsgSend)
+                        buffer.concat("(", node);
+                    buffer.concat("___r" + st.receiverLevel, node);
+                    if (!(st.maxReceiverLevel >= st.receiverLevel))
+                        st.maxReceiverLevel = st.receiverLevel;
+                }
+                if (inlineMsgSend) {
+                    buffer.concat(".isa.method_msgSend[\"", node);
+                    buffer.concat(selector, node);
+                    buffer.concat("\"] || _objj_forward)", node);
+                } else {
+                    buffer.concat(".isa.objj_msgSend", node);
+                }
+            } else {
+                buffer.concat(" "); // Add an extra space if it looks something like this: "return(<expression>)". No space between return and expression.
+                buffer.concat("objj_msgSend(");
+                buffer.concat(compiler.source.substring(compiler.lastPos, nodeObject.end));
+            }
         }
     }
 
