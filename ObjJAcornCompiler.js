@@ -377,6 +377,7 @@ function StringBuffer(useSourceNode, file, sourceContent)
         this.isEmpty = this.isEmptySourceNode;
         this.appendStringBuffer = this.appendStringBufferSourceNode;
         this.length = this.lengthSourceNode;
+        this.removeAtIndex = this.removeAtIndexSourceNode;
         if (file) {
             var fileString = file.toString(),
                 filename = fileString.substr(fileString.lastIndexOf('/') + 1),
@@ -399,6 +400,7 @@ function StringBuffer(useSourceNode, file, sourceContent)
         this.isEmpty = this.isEmptyString;
         this.appendStringBuffer = this.appendStringBufferString;
         this.length = this.lengthString;
+        this.removeAtIndex = this.removeAtIndexString;
     }
 }
 
@@ -501,6 +503,16 @@ StringBuffer.prototype.lengthString = function()
 StringBuffer.prototype.lengthSourceNode = function()
 {
     return this.rootNode.children.length;
+}
+
+StringBuffer.prototype.removeAtIndexString = function(index)
+{
+    return this.atoms[index] = "";
+}
+
+StringBuffer.prototype.removeAtIndexSourceNode = function(index)
+{
+    return this.rootNode.children[index] = "";
 }
 
 // Both the ClassDef and ProtocolDef conforms to a 'protocol' (That we can't declare in Javascript).
@@ -2166,10 +2178,10 @@ VariableDeclaration: function(node, st, c, format) {
     if (st.addedSelfToIvars) {
       var addedSelfToIvar = st.addedSelfToIvars[identifier];
       if (addedSelfToIvar) {
-        var atoms = st.compiler.jsBuffer.atoms;
+        var jsBuffer = st.compiler.jsBuffer;
         for (var i = 0, size = addedSelfToIvar.length; i < size; i++) {
           var dict = addedSelfToIvar[i];
-          atoms[dict.index] = "";
+          jsBuffer.removeAtIndex(dict.index);
           if (compiler.options.warnings.includes(warningShadowIvar)) compiler.addWarning(createMessage("Local declaration of '" + identifier + "' hides instance variable", dict.node, compiler.source));
         }
         // Add a read mark to the local variable for each time it is used.
