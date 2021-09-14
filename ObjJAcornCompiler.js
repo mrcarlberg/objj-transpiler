@@ -2086,12 +2086,15 @@ Function: function(node, st, c, format) {
       } else {
         buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
         buffer.concat(name);
-        buffer.concat(" = function");
+        buffer.concat(" = ");
+        if (node.async) buffer.concat("async ");
+        buffer.concat("function");
         compiler.lastPos = id.end;
       }
     }
   }
   if (generate) {
+    if (node.async) buffer.concat("async ");
     buffer.concat("function", node);
     if (!compiler.transformNamedFunctionDeclarationToAssignment && id)
     {
@@ -2521,6 +2524,19 @@ MemberExpression: function(node, st, c) {
     st.secondMemberExpression = false;
     if (generate && computed)
       compiler.jsBuffer.concat("]");
+},
+AwaitExpression: function(node, st, c, format) {
+    var compiler = st.compiler,
+        generate = compiler.generate,
+        buffer;
+    if (generate) {
+      buffer = compiler.jsBuffer;
+      buffer.concat("await", node);
+    }
+    if (node.argument) {
+      if (generate) buffer.concatFormat(format ? format.beforeExpression : " ");
+      c(node.argument, st, "Expression");
+    }
 },
 Identifier: function(node, st, c) {
     var compiler = st.compiler,
@@ -3447,6 +3463,8 @@ MethodDeclarationStatement: function(node, st, c) {
 
     if (node.body) {
         if (!generateObjJ) {
+            if (node.returntype && node.returntype.async)
+                compiler.jsBuffer.concat("async ");
             compiler.jsBuffer.concat("function");
 
             if (compiler.options.includeMethodFunctionNames)
