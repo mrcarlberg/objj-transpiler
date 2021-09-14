@@ -7,7 +7,7 @@ var compiler = require(path.join(path.dirname(fs.realpathSync(__filename)), "../
 var infile, compiled, options = {}, acornOptions = {}, silent = false, code = true, map = false, ast = false, output, outputFilename;
 
 function help(status) {
-  console.log("usage: " + path.basename(process.argv[1]) + " infile [--ecma3|--ecma5] [--strict-semicolons] [--track-comments]");
+  console.log("usage: " + path.basename(process.argv[1]) + " infile [--ecma3|--ecma5|--ecma8] [--strict-semicolons] [--track-comments]");
   console.log("        [--include-comments] [--include-comment-line-break] [--no-allow-trailing-commas]");
   console.log("        [(-o | --output) <path>");
   console.log("        [--formatter <path>]  [--indent-tab] [--indent-width <n>] [--indent-string <string>]");
@@ -68,6 +68,7 @@ for (var i = 2; i < process.argv.length; ++i) {
   var arg = process.argv[i];
   if (arg == "--ecma3") acornOptions.ecmaVersion = 3;
   else if (arg == "--ecma5") acornOptions.ecmaVersion = 5;
+  else if (arg == "--ecma8") acornOptions.ecmaVersion = 8;
   else if (arg == "--strict-semicolons") acornOptions.strictSemicolons = true;
   else if (arg == "--no-allow-trailing-commas") acornOptions.allowTrailingCommas = false;
   else if (arg == "--track-comments") acornOptions.trackComments = true;
