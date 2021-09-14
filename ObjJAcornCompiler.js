@@ -1283,9 +1283,14 @@ ObjJAcornCompiler.prototype.prettifyMessage = function(/* Message */ aMessage)
     var line = aMessage.messageForLine,
         message = "\n" + (line || "");
 
-    message += (new Array((aMessage.messageOnColumn || 0) + 1)).join(" ");
-    if (line) message += (new Array(Math.min(1, line.length || 1) + 1)).join("^") + "\n";
-    message += (aMessage.messageType || "ERROR") + " line " + (aMessage.messageOnLine || aMessage.line) + " in " + this.URL + ": " + aMessage.message;
+    // Handle if line does not end with a new line
+    if (!message.endsWith("\n")) message += "\n";
+    if (line) {
+        // Add spaces all the way to the column with the error/warning and mark it with a '^'
+        message += (new Array((aMessage.messageOnColumn || 0) + 1)).join(" ");
+        message += (new Array(Math.min(1, line.length || 1) + 1)).join("^") + "\n";
+    }
+    message += (aMessage.messageType || "ERROR") + " line " + (aMessage.messageOnLine || aMessage.line) + " in " + this.URL + + ":" + aMessage.messageOnLine + ": " + aMessage.message;
 
     return message;
 }
