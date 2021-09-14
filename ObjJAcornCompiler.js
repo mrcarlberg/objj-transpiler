@@ -1290,7 +1290,7 @@ ObjJAcornCompiler.prototype.prettifyMessage = function(/* Message */ aMessage)
         message += (new Array((aMessage.messageOnColumn || 0) + 1)).join(" ");
         message += (new Array(Math.min(1, line.length || 1) + 1)).join("^") + "\n";
     }
-    message += (aMessage.messageType || "ERROR") + " line " + (aMessage.messageOnLine || aMessage.line) + " in " + this.URL + + ":" + aMessage.messageOnLine + ": " + aMessage.message;
+    message += (aMessage.messageType || "ERROR") + " line " + (aMessage.messageOnLine || aMessage.line) + " in " + this.URL + ":" + aMessage.messageOnLine + ": " + aMessage.message;
 
     return message;
 }
