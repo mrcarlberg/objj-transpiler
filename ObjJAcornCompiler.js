@@ -729,7 +729,7 @@ var MethodDef = function(name, types)
     this.types = types;
 }
 
-var reservedIdentifiers = acorn.makePredicate("self _cmd undefined localStorage arguments");
+var reservedIdentifiers = acorn.makePredicate("self _cmd __filename undefined localStorage arguments");
 
 var wordPrefixOperators = acorn.makePredicate("delete in instanceof new typeof void");
 
