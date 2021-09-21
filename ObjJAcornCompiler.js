@@ -1605,6 +1605,7 @@ ExpressionStatement: function(node, st, c, format) {
     var compiler = st.compiler,
         generate = compiler.generate && !format;
     if (generate) compiler.jsBuffer.concat(indentation);
+    if (node.expression.type === "Reference") throw compiler.error_message("Can't have reference of expression as a statement", node.expression)
     c(node.expression, st, "Expression");
     if (generate) compiler.jsBuffer.concat(";\n", node);
 },
