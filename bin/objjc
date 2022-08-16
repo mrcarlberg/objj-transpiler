@@ -67,8 +67,11 @@ function defineMacro(macro) {
 for (var i = 2; i < process.argv.length; ++i) {
   var arg = process.argv[i];
   if (arg == "--ecma3") acornOptions.ecmaVersion = 3;
+  else if(arg == "--module") acornOptions.sourceType = "module";
   else if (arg == "--ecma5") acornOptions.ecmaVersion = 5;
   else if (arg == "--ecma8") acornOptions.ecmaVersion = 8;
+  else if (arg == "--loose") acornOptions.loose = true;
+  else if (arg == "--latest") acornOptions.ecmaVersion = "latest";
   else if (arg == "--strict-semicolons") acornOptions.strictSemicolons = true;
   else if (arg == "--no-allow-trailing-commas") acornOptions.allowTrailingCommas = false;
   else if (arg == "--track-comments") acornOptions.trackComments = true;
