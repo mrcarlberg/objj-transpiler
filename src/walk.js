@@ -146,7 +146,11 @@ pass1 = walk.make({
     ClassDeclarationStatement: ignore,
     MessageSendExpression: ignore,
     GlobalStatement: ignore,
-    ProtocolDeclarationStatement: ignore
+    ProtocolDeclarationStatement: ignore,
+    ArrayLiteral: ignore,
+    Reference: ignore,
+    DictionaryLiteral: ignore,
+    Dereference: ignore
 });
 
 // Returns true if subNode has higher precedence the the root node.
