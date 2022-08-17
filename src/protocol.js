@@ -3,7 +3,7 @@
 // Both also have the functions: addInstanceMethod, addClassMethod, getInstanceMethod and getClassMethod
 // protocolDef = {"name": aProtocolName, "protocols": inheritFromProtocols, "requiredInstanceMethods": requiredInstanceMethodDefs, "requiredClassMethods": requiredClassMethodDefs};
 
-class ProtocolDef {
+export class ProtocolDef {
 
     constructor(name, protocols, requiredInstanceMethodDefs, requiredClassMethodDefs) {
         this.name = name;

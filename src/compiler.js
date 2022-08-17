@@ -22,7 +22,12 @@ import * as objjParser from "objj-parser";
 import { Scope, FunctionScope } from "./scope.js";
 import { StringBuffer } from "./buffer.js";
 import { defaultOptions } from "./options.js";
-import { pass2 } from "./walk.js";
+import { pass2, pass1 } from "./walk.js";
+import { TypeDef } from "./definition.js";
+import { ClassDef } from "./class-def.js";
+import { ProtocolDef } from "./protocol.js";
+import { MethodDef } from "./definition.js";
+import { setupOptions } from "./options.js";
 
 export class ObjJAcornCompiler {
 
@@ -30,7 +35,7 @@ export class ObjJAcornCompiler {
 
         this.source = aString;
         this.URL = aURL && aURL.toString();
-        options = ObjJAcornCompiler.setupOptions(options);
+        options = setupOptions(options);
         this.options = options;
         this.pass = options.pass;
         this.classDefs = options.classDefs;
@@ -75,6 +80,9 @@ export class ObjJAcornCompiler {
                 acornOptions.macros = options.macros;
         }
 
+        acornOptions.preprocess = true;
+        acornOptions.objj = true
+
         try {
             this.tokens = objjParser.parse(aString, options.acornOptions);
             this.compile(this.tokens, new Scope(null, { compiler: this }), this.pass === 2 ? pass2 : pass1);
@@ -88,21 +96,6 @@ export class ObjJAcornCompiler {
         }
 
         this.setCompiledCode(this.jsBuffer);
-    }
-
-    // We copy the options to a new object as we don't want to mess up incoming options when we start compiling.
-    static setupOptions(opts) {
-        var options = Object.create(null);
-        for (var opt in defaultOptions) {
-            if (opts && Object.prototype.hasOwnProperty.call(opts, opt)) {
-                var incomingOpt = opts[opt];
-                options[opt] = typeof incomingOpt === 'function' ? incomingOpt() : incomingOpt;
-            } else if (defaultOptions.hasOwnProperty(opt)) {
-                var defaultOpt = defaultOptions[opt];
-                options[opt] = typeof defaultOpt === 'function' ? defaultOpt() : defaultOpt;
-            }
-        }
-        return options;
     }
 
     setCompiledCode(stringBuffer) {
@@ -334,6 +327,11 @@ export class ObjJAcornCompiler {
 
     compile(node, state, visitor) {
         function c(node, st, override) {
+            if (typeof visitor[override || node.type] !== "function") {
+                console.log(node.type)
+                console.log(override)
+                console.log(Object.keys(visitor));
+            }
             visitor[override || node.type](node, st, c);
         }
         c(node, state);

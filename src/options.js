@@ -76,3 +76,17 @@ export const defaultOptions = {
 
 };
 
+// We copy the options to a new object as we don't want to mess up incoming options when we start compiling.
+export function setupOptions(opts) {
+    var options = Object.create(null);
+    for (var opt in defaultOptions) {
+        if (opts && Object.prototype.hasOwnProperty.call(opts, opt)) {
+            var incomingOpt = opts[opt];
+            options[opt] = typeof incomingOpt === 'function' ? incomingOpt() : incomingOpt;
+        } else if (defaultOptions.hasOwnProperty(opt)) {
+            var defaultOpt = defaultOptions[opt];
+            options[opt] = typeof defaultOpt === 'function' ? defaultOpt() : defaultOpt;
+        }
+    }
+    return options;
+}

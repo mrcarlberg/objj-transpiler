@@ -4,21 +4,13 @@ export let pass1
 import walk from "acorn-walk"
 import { Scope, FunctionScope } from "./scope";
 import { wordsRegexp } from "./util";
-
-
-function createMessage(/* String */ aMessage, /* SpiderMonkey AST node */ node, /* String */ code) {
-    var message = objjParser.getLineInfo(code, node.start);
-
-    message.message = aMessage;
-    // As a SyntaxError object can't change the property 'line' we also set the property 'messageOnLine'
-    message.messageOnLine = message.line;
-    message.messageOnColumn = message.column;
-    message.messageForNode = node;
-    message.messageType = "WARNING";
-    message.messageForLine = code.substring(message.lineStart, message.lineEnd);
-
-    return message;
-}
+import { TypeDef } from "./definition";
+import { ClassDef } from "./class-def";
+import { StringBuffer } from "./buffer";
+import { ProtocolDef } from "./protocol";
+import { MethodDef } from "./definition";
+import { GlobalVariableMaybeWarning, warningUnknownClassOrGlobal } from "./warning";
+import { setupOptions } from "./options";
 
 function isIdempotentExpression(node) {
     switch (node.type) {
@@ -140,13 +132,21 @@ var expressionTypePrecedence = {
     AssignmentExpression: 8
 }
 
+function ignore(_node, _st, _c) {}
+
 pass1 = walk.make({
     ImportStatement: function (node, st, c) {
         var urlString = node.filename.value;
 
         st.compiler.dependencies.push({ url: urlString, isLocal: node.localfilepath });
         //st.compiler.dependencies.push(typeof FileDependency !== 'undefined' ? new FileDependency(typeof CFURL !== 'undefined' ? new CFURL(urlString) : urlString, node.localfilepath) : urlString);
-    }
+    },
+    TypeDefStatement: ignore,
+    ClassStatement: ignore,
+    ClassDeclarationStatement: ignore,
+    MessageSendExpression: ignore,
+    GlobalStatement: ignore,
+    ProtocolDeclarationStatement: ignore
 });
 
 // Returns true if subNode has higher precedence the the root node.
@@ -246,9 +246,9 @@ pass2 = walk.make({
         if (generate) compiler.jsBuffer.concat(indentation);
         let isDirective = node.directive
         if (node.expression.type === "Reference") throw compiler.error_message("Can't have reference of expression as a statement", node.expression)
-        if (!isDirective) compiler.jsBuffer.concat("(");  // TODO: This will probably throw parentheses everywhere.
+        //if (!isDirective) compiler.jsBuffer.concat("(");  // TODO: This will probably throw parentheses everywhere.
         c(node.expression, st, "Expression");
-        if (!isDirective) compiler.jsBuffer.concat(")");
+        //if (!isDirective) compiler.jsBuffer.concat(")");
         if (generate) compiler.jsBuffer.concat(";\n", node);
     },
     IfStatement: function (node, st, c, format) {

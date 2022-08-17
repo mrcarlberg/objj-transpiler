@@ -3,7 +3,7 @@
 // Both also have the functions: addInstanceMethod, addClassMethod, getInstanceMethod and getClassMethod
 // classDef = {"className": aClassName, "superClass": superClass , "ivars": myIvars, "instanceMethods": instanceMethodDefs, "classMethods": classMethodDefs, "protocols": myProtocols};
 
-class ClassDef {
+export class ClassDef {
 
     constructor(isImplementationDeclaration, name, superClass, ivars, instanceMethods, classMethods, protocols) {
         this.name = name;

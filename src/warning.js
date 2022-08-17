@@ -1,3 +1,5 @@
+import * as objjParser from "objj-parser";
+
 export class GlobalVariableMaybeWarning {
 
     constructor(/* String */ aMessage, /* SpiderMonkey AST node */ node, /* String */ code) {
@@ -26,3 +28,17 @@ export let warningUnknownClassOrGlobal = {name: "unknown-class-or-global"};
 export let warningUnknownIvarType = {name: "unknown-ivar-type"};
 
 var AllWarnings = [warningUnusedButSetVariable, warningShadowIvar, warningCreateGlobalInsideFunctionOrMethod, warningUnknownClassOrGlobal, warningUnknownIvarType];
+
+export function createMessage(/* String */ aMessage, /* SpiderMonkey AST node */ node, /* String */ code) {
+    var message = objjParser.getLineInfo(code, node.start);
+
+    message.message = aMessage;
+    // As a SyntaxError object can't change the property 'line' we also set the property 'messageOnLine'
+    message.messageOnLine = message.line;
+    message.messageOnColumn = message.column;
+    message.messageForNode = node;
+    message.messageType = "WARNING";
+    message.messageForLine = code.substring(message.lineStart, message.lineEnd);
+
+    return message;
+}
