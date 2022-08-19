@@ -218,7 +218,13 @@ pass2 = walk.make({
             buffer.concat("{\n", node);
         }
         for (var i = 0; i < node.body.length; ++i) {
-            c(node.body[i], st, "Statement");
+            if (node.body[i].type === "BlockStatement") {
+                indentation += indentStep
+                c(node.body[i], st, "Statement");
+                indentation = indentation.substring(indentationSize);
+            } else {
+                c(node.body[i], st, "Statement");
+            }
         }
         if (generate) {
             var maxReceiverLevel = st.maxReceiverLevel;
