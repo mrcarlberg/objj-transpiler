@@ -122,8 +122,8 @@ var operatorPrecedence = {
 }
 
 var expressionTypePrecedence = {
-    MemberExpression: 1, CallExpression: 1,
-    NewExpression: 2,
+    MemberExpression: 1, CallExpression: 1, NewExpression: 1,
+    ChainExpression: 2,
     FunctionExpression: 3, ArrowFunctionExpression: 3, ImportExpression: 3,
     UnaryExpression: 4, UpdateExpression: 4,
     BinaryExpression: 5,
