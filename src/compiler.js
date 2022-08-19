@@ -80,9 +80,6 @@ export class ObjJAcornCompiler {
                 acornOptions.macros = options.macros;
         }
 
-        acornOptions.preprocess = true;
-        acornOptions.objj = true
-
         try {
             this.tokens = objjParser.parse(aString, options.acornOptions);
             this.compile(this.tokens, new Scope(null, { compiler: this }), this.pass === 2 ? pass2 : pass1);
