@@ -1271,6 +1271,14 @@ pass2 = walk.make({
         buffer.concat("`")
 
     },
+    TaggedTemplateExpression: function (node, st, c) {
+        var compiler = st.compiler,
+            buffer = compiler.jsBuffer;
+        if (node.tag.type === "ChainExpression") buffer.concat("(");
+        c(node.tag, st, "Expression");
+        if (node.tag.type === "ChainExpression") buffer.concat(")");
+        c(node.quasi, st, "Expression");
+    },
     ConditionalExpression: function (node, st, c, format) {
         var compiler = st.compiler,
             generate = compiler.generate,
