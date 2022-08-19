@@ -4,7 +4,7 @@ import walk from "acorn-walk"
 import { SourceNode, SourceMapConsumer } from "source-map";
 
 import { Scope, FunctionScope } from "./scope";
-import { TypeDef, MethodDef} from "./definition";
+import { TypeDef, MethodDef } from "./definition";
 import { ClassDef } from "./class-def";
 import { ProtocolDef } from "./protocol";
 import { StringBuffer } from "./buffer";
@@ -132,7 +132,7 @@ var expressionTypePrecedence = {
     AssignmentExpression: 8
 }
 
-function ignore(_node, _st, _c) {}
+function ignore(_node, _st, _c) { }
 
 pass1 = walk.make({
     ImportStatement: function (node, st, c) {
@@ -176,8 +176,7 @@ var isLogicalBinary = wordsRegexp("LogicalExpression BinaryExpression");
 
 pass2 = walk.make({
     Program: function (node, st, c) {
-        var compiler = st.compiler,
-            generate = compiler.generate;
+        var compiler = st.compiler;
 
         indentType = compiler.options.indentationType;
         indentationSpaces = compiler.options.indentationSpaces;
@@ -188,7 +187,6 @@ pass2 = walk.make({
         for (var i = 0; i < node.body.length; ++i) {
             c(node.body[i], st, "Statement");
         }
-        if (!generate) compiler.jsBuffer.concat(compiler.source.substring(compiler.lastPos, node.end));
 
         // Check maybe warnings
         var maybeWarnings = st.maybeWarnings();
@@ -201,22 +199,20 @@ pass2 = walk.make({
     },
     BlockStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             endOfScopeBody = st.endOfScopeBody,
             buffer;
 
         if (endOfScopeBody)
             delete st.endOfScopeBody;
 
-        if (generate) {
-            var skipIndentation = st.skipIndentation;
-            buffer = compiler.jsBuffer;
-            if (skipIndentation)
-                delete st.skipIndentation;
-            else
-                buffer.concat(indentation.substring(indentationSize));
-            buffer.concat("{\n", node);
-        }
+        var skipIndentation = st.skipIndentation;
+        buffer = compiler.jsBuffer;
+        if (skipIndentation)
+            delete st.skipIndentation;
+        else
+            buffer.concat(indentation.substring(indentationSize));
+        buffer.concat("{\n", node);
+
         for (var i = 0; i < node.body.length; ++i) {
             if (node.body[i].type === "BlockStatement") {
                 indentation += indentStep
@@ -226,73 +222,63 @@ pass2 = walk.make({
                 c(node.body[i], st, "Statement");
             }
         }
-        if (generate) {
-            var maxReceiverLevel = st.maxReceiverLevel;
-            if (endOfScopeBody && maxReceiverLevel) {
-                buffer.concat(indentation);
-                buffer.concat("var ");
-                for (var i = 0; i < maxReceiverLevel; i++) {
-                    if (i) buffer.concat(", ");
-                    buffer.concat("___r");
-                    buffer.concat((i + 1) + "");
-                }
-                buffer.concat(";\n");
+        var maxReceiverLevel = st.maxReceiverLevel;
+        if (endOfScopeBody && maxReceiverLevel) {
+            buffer.concat(indentation);
+            buffer.concat("var ");
+            for (var i = 0; i < maxReceiverLevel; i++) {
+                if (i) buffer.concat(", ");
+                buffer.concat("___r");
+                buffer.concat((i + 1) + "");
             }
-
-            //Simulate a node for the last curly bracket
-            //      var endNode = node.loc && { loc: { start: { line : node.loc.end.line, column: node.loc.end.column}}, source: node.loc.source};
-
-            buffer.concat(indentation.substring(indentationSize));
-            buffer.concat("}", node);
-            if (st.isDefaultExport) buffer.concat(";")
-            if (!skipIndentation && st.isDecl !== false)
-                buffer.concat("\n");
-            st.indentBlockLevel--;
+            buffer.concat(";\n");
         }
+
+        //Simulate a node for the last curly bracket
+        //      var endNode = node.loc && { loc: { start: { line : node.loc.end.line, column: node.loc.end.column}}, source: node.loc.source};
+
+        buffer.concat(indentation.substring(indentationSize));
+        buffer.concat("}", node);
+        if (st.isDefaultExport) buffer.concat(";")
+        if (!skipIndentation && st.isDecl !== false)
+            buffer.concat("\n");
+        st.indentBlockLevel--;
     },
     ExpressionStatement: function (node, st, c) {
-        var compiler = st.compiler,
-            generate = compiler.generate;
-        if (generate) compiler.jsBuffer.concat(indentation);
+        var compiler = st.compiler;
+        compiler.jsBuffer.concat(indentation);
         if (node.expression.type === "Reference") throw compiler.error_message("Can't have reference of expression as a statement", node.expression)
         if ((node.expression.type === "AssignmentExpression" && node.expression.left.type === "ObjectPattern") || node.expression.type === "FunctionExpression" || node.expression.type === "ObjectExpression" || (node.expression.type === "BinaryExpression" && node.expression.left.type === "FunctionExpression") || (node.expression.type === "Literal" && node.expression.value === "use strict" && !node.directive)) {
             surroundExpression(c)(node.expression, st, "Expression")
         } else {
             c(node.expression, st, "Expression");
         }
-        if (generate) compiler.jsBuffer.concat(";\n", node);
+        compiler.jsBuffer.concat(";\n", node);
     },
     IfStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer;
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            // Keep the 'else' and 'if' on the same line if it is an 'else if'
-            if (!st.superNodeIsElse)
-                buffer.concat(indentation);
-            else
-                delete st.superNodeIsElse;
-            buffer.concat("if (", node);
-        }
+        buffer = compiler.jsBuffer;
+        // Keep the 'else' and 'if' on the same line if it is an 'else if'
+        if (!st.superNodeIsElse)
+            buffer.concat(indentation);
+        else
+            delete st.superNodeIsElse;
+        buffer.concat("if (", node);
         c(node.test, st, "Expression");
-        if (generate) {
-            // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
-            buffer.concat(")")
-            if (node.consequent.type !== "EmptyStatement") buffer.concat("\n")
-        }
+        // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
+        buffer.concat(")")
+        if (node.consequent.type !== "EmptyStatement") buffer.concat("\n")
         indentation += indentStep;
         c(node.consequent, st, "Statement");
         indentation = indentation.substring(indentationSize);
         var alternate = node.alternate;
         if (alternate) {
             var alternateNotIf = alternate.type !== "IfStatement";
-            if (generate) {
-                var emptyStatement = alternate.type === "EmptyStatement";
-                buffer.concat(indentation);
-                // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
-                buffer.concat(alternateNotIf ? emptyStatement ? "else" : "else\n" : "else ", node);
-            }
+            var emptyStatement = alternate.type === "EmptyStatement";
+            buffer.concat(indentation);
+            // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
+            buffer.concat(alternateNotIf ? emptyStatement ? "else" : "else\n" : "else ", node);
             if (alternateNotIf)
                 indentation += indentStep;
             else
@@ -304,132 +290,103 @@ pass2 = walk.make({
     },
     LabeledStatement: function (node, st, c) {
         var compiler = st.compiler;
-        if (compiler.generate) {
-            var buffer = compiler.jsBuffer;
-            c(node.label, st, "VariablePattern");
-            buffer.concat(": ", node);
-        }
+        var buffer = compiler.jsBuffer;
+        c(node.label, st, "VariablePattern");
+        buffer.concat(": ", node);
         c(node.body, st, "Statement");
     },
     BreakStatement: function (node, st, c) {
         var compiler = st.compiler;
-        if (compiler.generate) {
-            var label = node.label,
-                buffer = compiler.jsBuffer;
-            buffer.concat(indentation);
-            if (label) {
-                buffer.concat("break ", node);
-                c(label, st, "VariablePattern");
-                buffer.concat(";\n");
-            } else
-                buffer.concat("break;\n", node);
-        }
+        var label = node.label,
+            buffer = compiler.jsBuffer;
+        buffer.concat(indentation);
+        if (label) {
+            buffer.concat("break ", node);
+            c(label, st, "VariablePattern");
+            buffer.concat(";\n");
+        } else
+            buffer.concat("break;\n", node);
     },
     ContinueStatement: function (node, st, c) {
         var compiler = st.compiler;
-        if (compiler.generate) {
-            var label = node.label,
-                buffer = compiler.jsBuffer;
-            buffer.concat(indentation);
-            if (label) {
-                buffer.concat("continue ", node);
-                c(label, st, "VariablePattern");
-                buffer.concat(";\n");
-            } else
-                buffer.concat("continue;\n", node);
-        }
+        var label = node.label,
+            buffer = compiler.jsBuffer;
+        buffer.concat(indentation);
+        if (label) {
+            buffer.concat("continue ", node);
+            c(label, st, "VariablePattern");
+            buffer.concat(";\n");
+        } else
+            buffer.concat("continue;\n", node);
     },
     WithStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer;
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            buffer.concat(indentation);
-            buffer.concat("with(", node);
-        }
+        buffer = compiler.jsBuffer;
+        buffer.concat(indentation);
+        buffer.concat("with(", node);
         c(node.object, st, "Expression");
-        if (generate)
-            buffer.concat(")\n", node);
+        buffer.concat(")\n", node);
         indentation += indentStep;
         c(node.body, st, "Statement");
         indentation = indentation.substring(indentationSize);
     },
     SwitchStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer;
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            buffer.concat(indentation);
-            buffer.concat("switch(", node);
-        }
+        buffer = compiler.jsBuffer;
+        buffer.concat(indentation);
+        buffer.concat("switch(", node);
         c(node.discriminant, st, "Expression");
-        if (generate)
-            buffer.concat(") {\n");
+        buffer.concat(") {\n");
         indentation += indentStep;
         for (var i = 0; i < node.cases.length; ++i) {
             var cs = node.cases[i];
             if (cs.test) {
-                if (generate) {
-                    buffer.concat(indentation);
-                    buffer.concat("case ");
-                }
+                buffer.concat(indentation);
+                buffer.concat("case ");
                 c(cs.test, st, "Expression");
-                if (generate)
-                    buffer.concat(":\n");
+                buffer.concat(":\n");
             } else
-                if (generate)
-                    buffer.concat("default:\n");
+                buffer.concat("default:\n");
             indentation += indentStep;
             for (var j = 0; j < cs.consequent.length; ++j)
                 c(cs.consequent[j], st, "Statement");
             indentation = indentation.substring(indentationSize);
         }
         indentation = indentation.substring(indentationSize);
-        if (generate) {
-            buffer.concat(indentation);
-            buffer.concat("}\n");
-        }
+        buffer.concat(indentation);
+        buffer.concat("}\n");
     },
     ReturnStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer;
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            buffer.concat(indentation);
-            buffer.concat("return", node);
-        }
+        buffer = compiler.jsBuffer;
+        buffer.concat(indentation);
+        buffer.concat("return", node);
         if (node.argument) {
-            if (generate) buffer.concatFormat(" ");
+            buffer.concatFormat(" ");
             c(node.argument, st, "Expression");
         }
-        if (generate) buffer.concat(";\n");
+        buffer.concat(";\n");
     },
     ThrowStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer;
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            buffer.concat(indentation);
-            buffer.concat("throw", node);
-            buffer.concatFormat(" ");
-        }
+        buffer = compiler.jsBuffer;
+        buffer.concat(indentation);
+        buffer.concat("throw", node);
+        buffer.concatFormat(" ");
         c(node.argument, st, "Expression");
-        if (generate) buffer.concat(";\n");
+        buffer.concat(";\n");
     },
     TryStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer;
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            buffer.concat(indentation);
-            buffer.concat("try", node);
-            buffer.concatFormat(" ");
-        }
+        buffer = compiler.jsBuffer;
+        buffer.concat(indentation);
+        buffer.concat("try", node);
+        buffer.concatFormat(" ");
         indentation += indentStep;
         st.skipIndentation = true;
         c(node.block, st, "Statement");
@@ -440,15 +397,13 @@ pass2 = walk.make({
                 param = handler.param,
                 name = param?.name;
             if (name) inner.vars[name] = { type: "catch clause", node: param };
-            if (generate) {
-                buffer.concat("\n");
-                buffer.concat(indentation);
-                buffer.concat("catch");
-                if (param) {
-                    buffer.concat("(")
-                    c(param, st, "Pattern");
-                    buffer.concat(") ");
-                }
+            buffer.concat("\n");
+            buffer.concat(indentation);
+            buffer.concat("catch");
+            if (param) {
+                buffer.concat("(")
+                c(param, st, "Pattern");
+                buffer.concat(") ");
             }
             indentation += indentStep;
             inner.skipIndentation = true;
@@ -459,122 +414,93 @@ pass2 = walk.make({
             inner.copyAddedSelfToIvarsToParent();
         }
         if (node.finalizer) {
-            if (generate) {
-                buffer.concat("\n");
-                buffer.concat(indentation);
-                buffer.concat("finally ");
-            }
+            buffer.concat("\n");
+            buffer.concat(indentation);
+            buffer.concat("finally ");
             indentation += indentStep;
             st.skipIndentation = true;
             c(node.finalizer, st, "Statement");
             indentation = indentation.substring(indentationSize);
         }
-        if (generate)
-            buffer.concat("\n");
+        buffer.concat("\n");
     },
     WhileStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             body = node.body,
             buffer;
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            buffer.concat(indentation);
-            buffer.concat("while (", node);
-        }
+        buffer = compiler.jsBuffer;
+        buffer.concat(indentation);
+        buffer.concat("while (", node);
         c(node.test, st, "Expression");
-        if (generate)
-            // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
-            buffer.concat(")");
-            if (node.body.type !== "EmptyStatement") buffer.concat("\n")
+        // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
+        buffer.concat(")");
+        if (node.body.type !== "EmptyStatement") buffer.concat("\n")
         indentation += indentStep;
         c(body, st, "Statement");
         indentation = indentation.substring(indentationSize);
     },
     DoWhileStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer;
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            buffer.concat(indentation);
-            buffer.concat("do\n", node);
-        }
+        buffer = compiler.jsBuffer;
+        buffer.concat(indentation);
+        buffer.concat("do\n", node);
         indentation += indentStep;
         c(node.body, st, "Statement");
         indentation = indentation.substring(indentationSize);
-        if (generate) {
-            buffer.concat(indentation);
-            buffer.concat("while (");
-        }
+        buffer.concat(indentation);
+        buffer.concat("while (");
         c(node.test, st, "Expression");
-        if (generate) buffer.concatFormat(")\n");
+        buffer.concatFormat(")\n");
     },
     ForStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             body = node.body,
             buffer;
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            buffer.concat(indentation);
-            buffer.concat("for (", node);
-        }
+        buffer = compiler.jsBuffer;
+        buffer.concat(indentation);
+        buffer.concat("for (", node);
         if (node.init) c(node.init, st, "ForInit");
-        if (generate) buffer.concat("; ");
+        buffer.concat("; ");
         if (node.test) c(node.test, st, "Expression");
-        if (generate) buffer.concat("; ");
+        buffer.concat("; ");
         if (node.update) c(node.update, st, "Expression");
-        if (generate) {
-            // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
-            buffer.concat(")");
-            if (node.body.type !== "EmptyStatement") buffer.concat("\n")
-        }
+        // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
+        buffer.concat(")");
+        if (node.body.type !== "EmptyStatement") buffer.concat("\n")
         indentation += indentStep;
         c(body, st, "Statement");
         indentation = indentation.substring(indentationSize);
     },
     ForInStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             body = node.body,
             buffer;
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            buffer.concat(indentation);
-            buffer.concat("for (", node);
-        }
+        buffer = compiler.jsBuffer;
+        buffer.concat(indentation);
+        buffer.concat("for (", node);
         c(node.left, st, "ForInit");
-        if (generate)
-            buffer.concat(" in ");
+        buffer.concat(" in ");
         c(node.right, st, "Expression");
-        if (generate) {
-            // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
-            buffer.concat(body.type === "EmptyStatement" ? ")\n" : ")\n");
-        }
+        // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
+        buffer.concat(body.type === "EmptyStatement" ? ")\n" : ")\n");
         indentation += indentStep;
         c(body, st, "Statement");
         indentation = indentation.substring(indentationSize);
     },
     ForOfStatement: function (node, st, c) {  // TODO: Fix code duplication with 'for in'-
         var compiler = st.compiler,
-            generate = compiler.generate,
             body = node.body,
             buffer;
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            buffer.concat("for", node);
-            if (node.await) buffer.concat(" await ");
-            buffer.concat("(");
-        }
+        buffer = compiler.jsBuffer;
+        buffer.concat("for", node);
+        if (node.await) buffer.concat(" await ");
+        buffer.concat("(");
         c(node.left, st, "ForInit");
-        if (generate)
-            buffer.concat(" of ");
+        buffer.concat(" of ");
         c(node.right, st, "Expression");
-        if (generate) {
-            // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
-            buffer.concat(body.type === "EmptyStatement" ? ")\n" : ")\n");
-        }
+        // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
+        buffer.concat(body.type === "EmptyStatement" ? ")\n" : ")\n");
         indentation += indentStep;
         c(body, st, "Statement");
         indentation = indentation.substring(indentationSize);
@@ -596,15 +522,12 @@ pass2 = walk.make({
     },
     DebuggerStatement: function (node, st, c) {
         var compiler = st.compiler;
-        if (compiler.generate) {
-            var buffer = compiler.jsBuffer;
-            buffer.concat(indentation);
-            buffer.concat("debugger;\n", node);
-        }
+        var buffer = compiler.jsBuffer;
+        buffer.concat(indentation);
+        buffer.concat("debugger;\n", node);
     },
     Function: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer,
             inner = new FunctionScope(st),
             decl = node.type == "FunctionDeclaration",
@@ -613,48 +536,36 @@ pass2 = walk.make({
         inner.isDecl = decl;
         for (var i = 0; i < node.params.length; ++i)
             inner.vars[node.params[i].name] = { type: "argument", node: node.params[i] };
-        if (generate)
-            buffer.concat(indentation);
+        buffer.concat(indentation);
         if (id) {
             var name = id.name;
             (decl ? st : inner).vars[name] = { type: decl ? "function" : "function name", node: id };
             if (compiler.transformNamedFunctionDeclarationToAssignment) {
-                if (generate) {
-                    buffer.concat(name);
-                    buffer.concat(" = ");
-                } else {
-                    buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
-                    buffer.concat(name);
-                    buffer.concat(" = ");
-                    if (node.async) buffer.concat("async ");
-                    if (!st.skipFunctionKeyword) buffer.concat("function");
-                    compiler.lastPos = id.end;
-                }
+                buffer.concat(name);
+                buffer.concat(" = ");
             }
         }
-        if (generate) {
-            if (st.isDefaultExport && !decl) buffer.concat("(")
-            if (node.async) buffer.concat("async ");
-            if (!st.skipFunctionKeyword) buffer.concat("function", node);
-            if (node.generator) buffer.concat("*")
-            if (!compiler.transformNamedFunctionDeclarationToAssignment && id) {
-                buffer.concat(" ");
-                if (st.isComputed) buffer.concat("[")
-                c(id, st);
-                if (st.isComputed) buffer.concat("]")
-            }
-            buffer.concat("(");
-            for (var i = 0; i < node.params.length; ++i) {
-                if (i)
-                    buffer.concat(", ");
-                if (node.params[i].type == "RestElement") {
-                    c(node.params[i], st, "RestElement");
-                } else {
-                    c(node.params[i], st, "Pattern");
-                }
-            }
-            buffer.concat(")\n");
+        if (st.isDefaultExport && !decl) buffer.concat("(")
+        if (node.async) buffer.concat("async ");
+        if (!st.skipFunctionKeyword) buffer.concat("function", node);
+        if (node.generator) buffer.concat("*")
+        if (!compiler.transformNamedFunctionDeclarationToAssignment && id) {
+            buffer.concat(" ");
+            if (st.isComputed) buffer.concat("[")
+            c(id, st);
+            if (st.isComputed) buffer.concat("]")
         }
+        buffer.concat("(");
+        for (var i = 0; i < node.params.length; ++i) {
+            if (i)
+                buffer.concat(", ");
+            if (node.params[i].type == "RestElement") {
+                c(node.params[i], st, "RestElement");
+            } else {
+                c(node.params[i], st, "Pattern");
+            }
+        }
+        buffer.concat(")\n");
         indentation += indentStep;
         inner.endOfScopeBody = true;
         c(node.body, inner, "Statement");
@@ -664,40 +575,28 @@ pass2 = walk.make({
         inner.copyAddedSelfToIvarsToParent();
     },
     ObjectPattern: function (node, st, c) {
-        var compiler = st.compiler,
-            generate = compiler.generate;
-        if (generate) {
-            c(node, st, "ObjectExpression")
-        }
+        var compiler = st.compiler;
+        c(node, st, "ObjectExpression")
     },
     RestElement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer;
-        if (generate) {
-            buffer.concat("...")
-            c(node.argument, st)
-        }
+        buffer.concat("...")
+        c(node.argument, st)
     },
     EmptyStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer;
-        if (generate) {
-            buffer.concat(";\n")
-        }
+        buffer.concat(";\n")
     },
     VariableDeclaration: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             isVar = node.kind === "var",
             varScope = isVar ? st.getVarScope() : st,
             buffer;
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            if (!st.isFor) buffer.concat(indentation);
-            buffer.concat(node.kind + " ", node);
-        }
+        buffer = compiler.jsBuffer;
+        if (!st.isFor) buffer.concat(indentation);
+        buffer.concat(node.kind + " ", node);
         for (var i = 0; i < node.declarations.length; ++i) {
             var decl = node.declarations[i],
                 identifier = decl.id.name,
@@ -719,21 +618,17 @@ pass2 = walk.make({
             varScope.vars[identifier] = variableDeclaration;
 
             if (i)
-                if (generate) {
-                    if (st.isFor)
-                        buffer.concat(", ");
-                    else {
-                        buffer.concat(",\n");
-                        buffer.concat(indentation);
-                        buffer.concat("    ");
-                    }
+                if (st.isFor)
+                    buffer.concat(", ");
+                else {
+                    buffer.concat(",\n");
+                    buffer.concat(indentation);
+                    buffer.concat("    ");
                 }
 
             c(decl.id, st, "Pattern");
             if (decl.init) {
-                if (generate) {
-                    buffer.concat(" = ");
-                }
+                buffer.concat(" = ");
                 c(decl.init, st, "Expression");
             }
             // FIXME: Extract to function
@@ -755,39 +650,35 @@ pass2 = walk.make({
                 }
             }
         }
-        if (generate && !st.isFor) buffer.concat(";\n", node); // Don't add ';' if this is a for statement but do it if this is a statement
+        if (!st.isFor) buffer.concat(";\n", node); // Don't add ';' if this is a for statement but do it if this is a statement
     },
     ThisExpression: function (node, st, c) {
         var compiler = st.compiler;
 
-        if (compiler.generate) compiler.jsBuffer.concat("this", node);
+        compiler.jsBuffer.concat("this", node);
     },
     ArrayExpression: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer;
 
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            buffer.concat("[", node);
-        }
+        buffer = compiler.jsBuffer;
+        buffer.concat("[", node);
 
         for (var i = 0; i < node.elements.length; ++i) {
             var elt = node.elements[i];
 
-            if (generate && i !== 0)
+            if (i !== 0)
                 buffer.concat(", ");
 
             if (elt) c(elt, st, "Expression");
         }
-        if (generate) buffer.concat("]");
+        buffer.concat("]");
     },
     ObjectExpression: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             properties = node.properties,
             buffer = compiler.jsBuffer;
-        if (generate) buffer.concat("{", node);
+        buffer.concat("{", node);
         let isFirst = true
         for (const prop of properties) {
             if (!isFirst) {
@@ -809,18 +700,13 @@ pass2 = walk.make({
                     delete st.isComputed
 
                 } else {
-                    if (generate) {
-                        if (prop.computed) buffer.concat("[")
-                        st.isPropertyKey = true;
-                        c(prop.key, st, "Expression");
-                        delete st.isPropertyKey;
-                        if (prop.computed) buffer.concat("]")
-                        if (!prop.shorthand) {
-                            buffer.concat(": ");
-                        }
-                    } else if (prop.key.raw && prop.key.raw.charAt(0) === "@") {
-                        buffer.concat(compiler.source.substring(compiler.lastPos, prop.key.start));
-                        compiler.lastPos = prop.key.start + 1;
+                    if (prop.computed) buffer.concat("[")
+                    st.isPropertyKey = true;
+                    c(prop.key, st, "Expression");
+                    delete st.isPropertyKey;
+                    if (prop.computed) buffer.concat("]")
+                    if (!prop.shorthand) {
+                        buffer.concat(": ");
                     }
                     if (!prop.shorthand) c(prop.value, st, "Expression");
                 }
@@ -828,139 +714,110 @@ pass2 = walk.make({
                 c(prop, st)
             }
         }
-        if (generate) buffer.concat("}");
+        buffer.concat("}");
     },
     StaticBlock: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer;
-        if (generate) {
-            buffer.concat(indentation)
-            buffer.concat("static")
-            buffer.concat("{")
-            for (var i = 0; i < node.body.length; ++i) {
-                c(node.body[i], st, "Statement");
-            }
-            buffer.concat("}")
+        buffer.concat(indentation)
+        buffer.concat("static")
+        buffer.concat("{")
+        for (var i = 0; i < node.body.length; ++i) {
+            c(node.body[i], st, "Statement");
         }
+        buffer.concat("}")
     },
     SpreadElement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer;
-        if (generate) {
-            buffer.concat("...")
-            c(node.argument, st)
-        }
+        buffer.concat("...")
+        c(node.argument, st)
     },
     SequenceExpression: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer;
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            buffer.concat("(", node);
-        }
+        buffer = compiler.jsBuffer;
+        buffer.concat("(", node);
         for (var i = 0; i < node.expressions.length; ++i) {
-            if (generate && i !== 0)
+            if (i !== 0)
                 buffer.concat(", ");
             c(node.expressions[i], st, "Expression");
         }
-        if (generate) buffer.concat(")");
+        buffer.concat(")");
     },
     UnaryExpression: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             argument = node.argument;
-        if (generate) {
-            var buffer = compiler.jsBuffer;
-            if (node.prefix) {
-                buffer.concat(node.operator, node);
-                if (wordPrefixOperators.test(node.operator))
-                    buffer.concat(" ");
-                (nodePrecedence(node, argument) ? surroundExpression(c) : c)(argument, st, "Expression");
-            } else {
-                (nodePrecedence(node, argument) ? surroundExpression(c) : c)(argument, st, "Expression");
-                buffer.concat(node.operator);
-            }
+        var buffer = compiler.jsBuffer;
+        if (node.prefix) {
+            buffer.concat(node.operator, node);
+            if (wordPrefixOperators.test(node.operator))
+                buffer.concat(" ");
+            (nodePrecedence(node, argument) ? surroundExpression(c) : c)(argument, st, "Expression");
         } else {
-            c(argument, st, "Expression");
+            (nodePrecedence(node, argument) ? surroundExpression(c) : c)(argument, st, "Expression");
+            buffer.concat(node.operator);
         }
     },
     UpdateExpression: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer;
         if (node.argument.type === "Dereference") {
             checkCanDereference(st, node.argument);
 
             // @deref(x)++ and ++@deref(x) require special handling.
-            if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
 
             // Output the dereference function, "(...)(z)"
             buffer.concat((node.prefix ? "" : "(") + "(");
 
             // The thing being dereferenced.
-            if (!generate) compiler.lastPos = node.argument.expr.start;
             c(node.argument.expr, st, "Expression");
-            if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, node.argument.expr.end));
             buffer.concat(")(");
 
-            if (!generate) compiler.lastPos = node.argument.start;
             c(node.argument, st, "Expression");
-            if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, node.argument.end));
             buffer.concat(" " + node.operator.substring(0, 1) + " 1)" + (node.prefix ? "" : node.operator == '++' ? " - 1)" : " + 1)"));
 
-            if (!generate) compiler.lastPos = node.end;
             return;
         }
 
         if (node.prefix) {
-            if (generate) {
-                buffer.concat(node.operator, node);
-                if (wordPrefixOperators.test(node.operator))
-                    buffer.concat(" ");
-            }
-            (generate && nodePrecedence(node, node.argument) ? surroundExpression(c) : c)(node.argument, st, "Expression");
+            buffer.concat(node.operator, node);
+            if (wordPrefixOperators.test(node.operator))
+                buffer.concat(" ");
+            (nodePrecedence(node, node.argument) ? surroundExpression(c) : c)(node.argument, st, "Expression");
         } else {
-            (generate && nodePrecedence(node, node.argument) ? surroundExpression(c) : c)(node.argument, st, "Expression");
-            if (generate) buffer.concat(node.operator);
+            (nodePrecedence(node, node.argument) ? surroundExpression(c) : c)(node.argument, st, "Expression");
+            buffer.concat(node.operator);
         }
     },
     BinaryExpression: function (node, st, c) {
-        var compiler = st.compiler,
-            generate = compiler.generate;
+        var compiler = st.compiler;
         if (node.operator == "**" || node.left.type == "ArrowFunctionExpression") {
             surroundExpression(c)(node.left, st, "Expression");
         } else {
-            (generate && nodePrecedence(node, node.left) ? surroundExpression(c) : c)(node.left, st, "Expression");
+            (nodePrecedence(node, node.left) ? surroundExpression(c) : c)(node.left, st, "Expression");
         }
-        if (generate) {
-            var buffer = compiler.jsBuffer;
-            buffer.concatFormat(" ");
-            buffer.concat(node.operator, node);
-            buffer.concatFormat(" ");
-        }
-        (generate && nodePrecedence(node, node.right, true) ? surroundExpression(c) : c)(node.right, st, "Expression");
+        var buffer = compiler.jsBuffer;
+        buffer.concatFormat(" ");
+        buffer.concat(node.operator, node);
+        buffer.concatFormat(" ");
+        (nodePrecedence(node, node.right, true) ? surroundExpression(c) : c)(node.right, st, "Expression");
     },
     LogicalExpression: function (node, st, c) {
-        var compiler = st.compiler,
-            generate = compiler.generate;
+        var compiler = st.compiler;
         if (node.operator == "??") {
             surroundExpression(c)(node.left, st, "Expression");
         } else {
-            (generate && nodePrecedence(node, node.left) ? surroundExpression(c) : c)(node.left, st, "Expression");
+            (nodePrecedence(node, node.left) ? surroundExpression(c) : c)(node.left, st, "Expression");
         }
-        if (generate) {
-            var buffer = compiler.jsBuffer;
-            buffer.concatFormat(" ");
-            buffer.concat(node.operator);
-            buffer.concatFormat(" ");
-        }
+        var buffer = compiler.jsBuffer;
+        buffer.concatFormat(" ");
+        buffer.concat(node.operator);
+        buffer.concatFormat(" ");
         if (node.operator == "??") {
             surroundExpression(c)(node.right, st, "Expression");
         } else {
-            (generate && nodePrecedence(node, node.right, true) ? surroundExpression(c) : c)(node.right, st, "Expression");
+            (nodePrecedence(node, node.right, true) ? surroundExpression(c) : c)(node.right, st, "Expression");
         }
     },
     ParenthesizedExpression: function (node, st, c) {
@@ -971,7 +828,6 @@ pass2 = walk.make({
     },
     AssignmentExpression: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             saveAssignment = st.assignment,
             buffer = compiler.jsBuffer;
 
@@ -979,31 +835,23 @@ pass2 = walk.make({
             checkCanDereference(st, node.left);
 
             // @deref(x) = z    -> x(z) etc
-            if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
 
             // Output the dereference function, "(...)(z)"
             buffer.concat("(", node);
             // What's being dereferenced could itself be an expression, such as when dereferencing a deref.
-            if (!generate) compiler.lastPos = node.left.expr.start;
             c(node.left.expr, st, "Expression");
-            if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, node.left.expr.end));
             buffer.concat(")(");
 
             // Now "(x)(...)". We have to manually expand +=, -=, *= etc.
             if (node.operator !== "=") {
                 // Output the whole .left, not just .left.expr.
-                if (!generate) compiler.lastPos = node.left.start;
                 c(node.left, st, "Expression");
-                if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, node.left.end));
                 buffer.concat(" " + node.operator.substring(0, 1) + " ");
             }
 
-            if (!generate) compiler.lastPos = node.right.start;
             c(node.right, st, "Expression");
-            if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, node.right.end));
             buffer.concat(")");
 
-            if (!generate) compiler.lastPos = node.end;
 
             return;
         }
@@ -1020,14 +868,12 @@ pass2 = walk.make({
                     lvarScope.assignmentToSelf = true;
             }
         }
-        (generate && nodePrecedence(node, nodeLeft) ? surroundExpression(c) : c)(nodeLeft, st, "Expression");
-        if (generate) {
-            buffer.concatFormat(" ");
-            buffer.concat(node.operator);
-            buffer.concatFormat(" ");
-        }
+        (nodePrecedence(node, nodeLeft) ? surroundExpression(c) : c)(nodeLeft, st, "Expression");
+        buffer.concatFormat(" ");
+        buffer.concat(node.operator);
+        buffer.concatFormat(" ");
         st.assignment = saveAssignment;
-        (generate && nodePrecedence(node, node.right, true) ? surroundExpression(c) : c)(node.right, st, "Expression");
+        (nodePrecedence(node, node.right, true) ? surroundExpression(c) : c)(node.right, st, "Expression");
         if (st.isRootScope() && nodeLeft.type === "Identifier" && !st.getLvar(nodeLeft.name))
             st.vars[nodeLeft.name] = { type: "global", node: nodeLeft };
     },
@@ -1079,42 +925,34 @@ pass2 = walk.make({
     },
     ConditionalExpression: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer;
-        (generate && nodePrecedence(node, node.test) ? surroundExpression(c) : c)(node.test, st, "Expression");
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            buffer.concat(" ? ");
-        }
+        (nodePrecedence(node, node.test) ? surroundExpression(c) : c)(node.test, st, "Expression");
+        buffer = compiler.jsBuffer;
+        buffer.concat(" ? ");
         c(node.consequent, st, "Expression");
-        if (generate)
-            buffer.concat(" : ");
+        buffer.concat(" : ");
         c(node.alternate, st, "Expression");
     },
     NewExpression: function (node, st, c) {
         var compiler = st.compiler,
             nodeArguments = node.arguments,
-            generate = compiler.generate,
             buffer;
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            buffer.concat("new ", node);
-        }
-        (generate && nodePrecedence(node, node.callee) ? surroundExpression(c) : c)(node.callee, st, "Expression");
-        if (generate) buffer.concat("(");
+        buffer = compiler.jsBuffer;
+        buffer.concat("new ", node);
+        (nodePrecedence(node, node.callee) ? surroundExpression(c) : c)(node.callee, st, "Expression");
+        buffer.concat("(");
         if (nodeArguments) {
             for (var i = 0, size = nodeArguments.length; i < size; ++i) {
-                if (i && generate)
+                if (i)
                     buffer.concatFormat(", ");
                 c(nodeArguments[i], st, "Expression");
             }
         }
-        if (generate) buffer.concat(")");
+        buffer.concat(")");
     },
     CallExpression: function (node, st, c) {
         var compiler = st.compiler,
             nodeArguments = node.arguments,
-            generate = compiler.generate,
             callee = node.callee,
             buffer;
 
@@ -1130,65 +968,54 @@ pass2 = walk.make({
             }
         }
 
-        (generate && nodePrecedence(node, callee) ? surroundExpression(c) : c)(callee, st, "Expression");
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            if (node.optional) buffer.concat("?.")
-            buffer.concat("(");
-        }
+        (nodePrecedence(node, callee) ? surroundExpression(c) : c)(callee, st, "Expression");
+        buffer = compiler.jsBuffer;
+        if (node.optional) buffer.concat("?.")
+        buffer.concat("(");
         if (nodeArguments) {
             for (var i = 0, size = nodeArguments.length; i < size; ++i) {
-                if (i && generate)
+                if (i)
                     buffer.concat(", ");
                 c(nodeArguments[i], st, "Expression");
             }
         }
-        if (generate) buffer.concat(")");
+        buffer.concat(")");
     },
     MemberExpression: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             computed = node.computed;
-        (generate && nodePrecedence(node, node.object) ? surroundExpression(c) : c)(node.object, st, "Expression");
-        if (generate) {
-            let s = ""
-            if (node.optional && node.computed) {
-                s = "?.["
-            } else if (node.optional) {
-                s = "?."
-            } else if (node.computed) {
-                s = "["
-            } else {
-                s = "."
-            }
-            compiler.jsBuffer.concat(s);
+        (nodePrecedence(node, node.object) ? surroundExpression(c) : c)(node.object, st, "Expression");
+        let s = ""
+        if (node.optional && node.computed) {
+            s = "?.["
+        } else if (node.optional) {
+            s = "?."
+        } else if (node.computed) {
+            s = "["
+        } else {
+            s = "."
         }
+        compiler.jsBuffer.concat(s);
         st.secondMemberExpression = !computed;
         // No parentheses when it is computed, '[' and ']' are the same thing.
-        (generate && !computed && nodePrecedence(node, node.property) ? surroundExpression(c) : c)(node.property, st, "Expression");
+        (!computed && nodePrecedence(node, node.property) ? surroundExpression(c) : c)(node.property, st, "Expression");
         st.secondMemberExpression = false;
-        if (generate && computed)
+        if (computed)
             compiler.jsBuffer.concat("]");
     },
     ChainExpression: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer;
 
-        if (generate) {
-            c(node.expression, st)
-        }
+        c(node.expression, st)
     },
     AwaitExpression: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer;
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            buffer.concat("await", node);
-        }
+        buffer = compiler.jsBuffer;
+        buffer.concat("await", node);
         if (node.argument) {
-            if (generate) buffer.concatFormat(" ");
+            buffer.concatFormat(" ");
             buffer.concat("(")
             c(node.argument, st, "Expression");
             buffer.concat(")")
@@ -1196,34 +1023,30 @@ pass2 = walk.make({
     },
     ArrowFunctionExpression: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer;
-        if (generate) {
-            if (node.async) buffer.concat("async ")
-            buffer.concat("(")
-            let isFirst = true
-            for (const param of node.params) {
-                if (isFirst) {
-                    isFirst = false
-                } else {
-                    buffer.concat(", ");
-                }
-                c(param, st, "Pattern")
-            }
-            buffer.concat(")")
-            buffer.concat(" => ")
-            if (node.expression) {
-                buffer.concat("(")
-                c(node.body, st, "Expression")
-                buffer.concat(")")
+        if (node.async) buffer.concat("async ")
+        buffer.concat("(")
+        let isFirst = true
+        for (const param of node.params) {
+            if (isFirst) {
+                isFirst = false
             } else {
-                c(node.body, st, "BlockStatement")
+                buffer.concat(", ");
             }
+            c(param, st, "Pattern")
+        }
+        buffer.concat(")")
+        buffer.concat(" => ")
+        if (node.expression) {
+            buffer.concat("(")
+            c(node.body, st, "Expression")
+            buffer.concat(")")
+        } else {
+            c(node.body, st, "BlockStatement")
         }
     },
     Identifier: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             generateObjJ = compiler.options.generateObjJ,
             identifier = node.name;
         if (!st.isPropertyKey) {
@@ -1239,10 +1062,6 @@ pass2 = walk.make({
                     else {
                         var nodeStart = node.start;
 
-                        if (!generate) do {    // The Spider Monkey AST tree includes any parentheses in start and end properties so we have to make sure we skip those
-                            compiler.jsBuffer.concat(compiler.source.substring(compiler.lastPos, nodeStart));
-                            compiler.lastPos = nodeStart;
-                        } while (compiler.source.substr(nodeStart++, 1) === "(")
                         // Save the index in where the "self." string is stored and the node.
                         // These will be used if we find a variable declaration that is hoisting this identifier.
                         ((st.addedSelfToIvars || (st.addedSelfToIvars = Object.create(null)))[identifier] || (st.addedSelfToIvars[identifier] = [])).push({ node: node, index: compiler.jsBuffer.length() });
@@ -1307,48 +1126,37 @@ pass2 = walk.make({
                 }
             }
         }
-        if (generate) compiler.jsBuffer.concat(identifier, node, identifier === "self" ? "self" : null);
+        compiler.jsBuffer.concat(identifier, node, identifier === "self" ? "self" : null);
     },
     YieldExpression: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer;
-        if (generate) {
-            buffer = compiler.jsBuffer;
-            buffer.concat("yield", node);
-            if (node.delegate) buffer.concat("*")
-        }
+        buffer = compiler.jsBuffer;
+        buffer.concat("yield", node);
+        if (node.delegate) buffer.concat("*")
         if (node.argument) {
-            if (generate) buffer.concatFormat(" ");
+            buffer.concatFormat(" ");
             c(node.argument, st, "Expression");
         }
     },
     // Use this when there should not be a look up to issue warnings or add 'self.' before ivars
     VariablePattern: function (node, st, c) {
         var compiler = st.compiler;
-        if (compiler.generate)
-            compiler.jsBuffer.concat(node.name, node);
+        compiler.jsBuffer.concat(node.name, node);
     },
     Literal: function (node, st, c) {
-        var compiler = st.compiler,
-            generate = compiler.generate;
-        if (generate) {
-            if (node.raw)
-                if (node.raw.charAt(0) === "@")
-                    compiler.jsBuffer.concat(node.raw.substring(1), node);
-                else
-                    compiler.jsBuffer.concat(node.raw, node);
-            else {
-                var value = node.value,
-                    doubleQuote = value.indexOf('"') !== -1;
-                compiler.jsBuffer.concat(doubleQuote ? "'" : '"', node);
-                compiler.jsBuffer.concat(value);
-                compiler.jsBuffer.concat(doubleQuote ? "'" : '"');
-            }
-
-        } else if (node.raw.charAt(0) === "@") {
-            compiler.jsBuffer.concat(compiler.source.substring(compiler.lastPos, node.start));
-            compiler.lastPos = node.start + 1;
+        var compiler = st.compiler;
+        if (node.raw)
+            if (node.raw.charAt(0) === "@")
+                compiler.jsBuffer.concat(node.raw.substring(1), node);
+            else
+                compiler.jsBuffer.concat(node.raw, node);
+        else {
+            var value = node.value,
+                doubleQuote = value.indexOf('"') !== -1;
+            compiler.jsBuffer.concat(doubleQuote ? "'" : '"', node);
+            compiler.jsBuffer.concat(value);
+            compiler.jsBuffer.concat(doubleQuote ? "'" : '"');
         }
     },
     ClassDeclaration: function (node, st, c) {
@@ -1369,97 +1177,77 @@ pass2 = walk.make({
         c(node, st, "ClassDeclaration");
     },
     ClassBody: function (node, st, c) {
-        var compiler = st.compiler,
-            generate = compiler.generate;
-        if (generate) {
-            compiler.jsBuffer.concat(" {\n");
-            for (let element of node.body) {
-                c(element, st)
-                compiler.jsBuffer.concat("\n")
-            }
-            compiler.jsBuffer.concat("}");
+        var compiler = st.compiler;
+        compiler.jsBuffer.concat(" {\n");
+        for (let element of node.body) {
+            c(element, st)
+            compiler.jsBuffer.concat("\n")
         }
+        compiler.jsBuffer.concat("}");
     },
     PropertyDefinition: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer;
 
-        if (generate) {
-            buffer.concat(indentation)
-            if (node.static) buffer.concat("static ")
-            if (node.computed) buffer.concat("[")
-            c(node.key, st)
-            if (node.computed) buffer.concat("]")
-            if (node.value) {
-                buffer.concat(" = ")
-                c(node.value, st)
-            }
-            buffer.concat(";")
+        buffer.concat(indentation)
+        if (node.static) buffer.concat("static ")
+        if (node.computed) buffer.concat("[")
+        c(node.key, st)
+        if (node.computed) buffer.concat("]")
+        if (node.value) {
+            buffer.concat(" = ")
+            c(node.value, st)
         }
+        buffer.concat(";")
     },
     MethodDefinition: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer;
-        if (generate) {
-            buffer.concat(indentation)
-            if (node.static) buffer.concat("static ")
-            if (node.value.async) buffer.concat("async ")
-            if (node.kind == "get") buffer.concat("get ")
-            if (node.kind == "set") buffer.concat("set ")
-            if (node.value.generator) buffer.concat("*")
-            if (node.computed) buffer.concat("[")
-            c(node.key, st)
-            if (node.computed) buffer.concat("]")
-            buffer.concat("(");
-            for (var i = 0; i < node.value.params.length; ++i) {
-                if (i)
-                    buffer.concat(", ");
-                c(node.value.params[i], st, "Pattern");
-            }
-            buffer.concat(")");
-            indentation += indentStep
-            c(node.value.body, st)
-            indentation = indentation.substring(indentationSize);
-
+        buffer.concat(indentation)
+        if (node.static) buffer.concat("static ")
+        if (node.value.async) buffer.concat("async ")
+        if (node.kind == "get") buffer.concat("get ")
+        if (node.kind == "set") buffer.concat("set ")
+        if (node.value.generator) buffer.concat("*")
+        if (node.computed) buffer.concat("[")
+        c(node.key, st)
+        if (node.computed) buffer.concat("]")
+        buffer.concat("(");
+        for (var i = 0; i < node.value.params.length; ++i) {
+            if (i)
+                buffer.concat(", ");
+            c(node.value.params[i], st, "Pattern");
         }
+        buffer.concat(")");
+        indentation += indentStep
+        c(node.value.body, st)
+        indentation = indentation.substring(indentationSize);
     },
     PrivateIdentifier: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer;
-        if (generate) {
-            buffer.concat("#")
-            buffer.concat(node.name)
-        }
+        buffer.concat("#")
+        buffer.concat(node.name)
     },
     MetaProperty: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer;
 
         // Very specific special cases. Apparently this will be used in future versions of ES.
-        if (generate) {
-            if (node.meta.name == "import") {
-                buffer.concat("import.meta")
-            } else {
-                buffer.concat("new.target")
-            }
+        if (node.meta.name == "import") {
+            buffer.concat("import.meta")
+        } else {
+            buffer.concat("new.target")
         }
     },
     Super: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer;
 
-        if (generate) {
-            buffer.concat("super")
-        }
+        buffer.concat("super")
     },
     ExportNamedDeclaration: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer;
 
         // The different cases we can have when we encounter an 'ExportNamedDeclaration'
@@ -1467,131 +1255,108 @@ pass2 = walk.make({
         // Case 2: declaration is null, specifiers are non-null, source is null
         // Case 3: declaration is null, specifiers are non-null, source is non-null
 
-        if (generate) {
-            buffer.concat("export ")
-            if (node.declaration) {
-                c(node.declaration, st)
-            } else {
-                buffer.concat("{")
-                let isFirst = true
-                for (const specifier of node.specifiers) {
-                    if (!isFirst) {
-                        buffer.concat(", ")
-                    } else {
-                        isFirst = false
-                    }
-                    c(specifier, st)
-                }
-                buffer.concat("}")
-                if (node.source) {
-                    buffer.concat(" from ")
-                    c(node.source, st)
-                }
-            }
-            buffer.concat("\n")
-        }
-    },
-    ExportSpecifier: function (node, st, c) {
-        var compiler = st.compiler,
-            generate = compiler.generate,
-            buffer = compiler.jsBuffer;
-        if (generate) {
-            c(node.local, st)
-            if (node.local !== node.exported) {
-                buffer.concat(" as ")
-                c(node.exported, st)
-            }
-        }
-    },
-    ExportDefaultDeclaration: function (node, st, c) {
-        var compiler = st.compiler,
-            generate = compiler.generate,
-            buffer = compiler.jsBuffer;
-        st.isDefaultExport = true
-        if (generate) {
-            buffer.concat("export default ")
+        buffer.concat("export ")
+        if (node.declaration) {
             c(node.declaration, st)
-        }
-        delete st.isDefaultExport
-    },
-    ExportAllDeclaration: function (node, st, c) {
-        var compiler = st.compiler,
-            generate = compiler.generate,
-            buffer = compiler.jsBuffer;
-        if (generate) {
-            buffer.concat("export * ")
-            if (node.exported) {
-                buffer.concat("as ")
-                c(node.exported, st)
+        } else {
+            buffer.concat("{")
+            let isFirst = true
+            for (const specifier of node.specifiers) {
+                if (!isFirst) {
+                    buffer.concat(", ")
+                } else {
+                    isFirst = false
+                }
+                c(specifier, st)
             }
+            buffer.concat("}")
             if (node.source) {
                 buffer.concat(" from ")
                 c(node.source, st)
             }
-            buffer.concat("\n")
         }
+        buffer.concat("\n")
+    },
+    ExportSpecifier: function (node, st, c) {
+        var compiler = st.compiler,
+            buffer = compiler.jsBuffer;
+        c(node.local, st)
+        if (node.local !== node.exported) {
+            buffer.concat(" as ")
+            c(node.exported, st)
+        }
+    },
+    ExportDefaultDeclaration: function (node, st, c) {
+        var compiler = st.compiler,
+            buffer = compiler.jsBuffer;
+        st.isDefaultExport = true
+        buffer.concat("export default ")
+        c(node.declaration, st)
+        delete st.isDefaultExport
+    },
+    ExportAllDeclaration: function (node, st, c) {
+        var compiler = st.compiler,
+            buffer = compiler.jsBuffer;
+        buffer.concat("export * ")
+        if (node.exported) {
+            buffer.concat("as ")
+            c(node.exported, st)
+        }
+        if (node.source) {
+            buffer.concat(" from ")
+            c(node.source, st)
+        }
+        buffer.concat("\n")
     },
     ImportDeclaration: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer;
 
-        if (generate) {
-            buffer.concat("import ")
-            let startedCurly = false
-            let isFirst = true
-            for (const specifier of node.specifiers) {
-                if (!isFirst) buffer.concat(", ")
-                else isFirst = false
-                switch (specifier.type) {
-                    case "ImportSpecifier":
-                        if (!startedCurly) buffer.concat("{")
-                        startedCurly = true
-                        c(specifier.imported, st)
-                        if (specifier.local !== specifier.imported) {
-                            buffer.concat(" as ")
-                            c(specifier.local, st)
-                        }
-                        break
-                    case "ImportDefaultSpecifier":
+        buffer.concat("import ")
+        let startedCurly = false
+        let isFirst = true
+        for (const specifier of node.specifiers) {
+            if (!isFirst) buffer.concat(", ")
+            else isFirst = false
+            switch (specifier.type) {
+                case "ImportSpecifier":
+                    if (!startedCurly) buffer.concat("{")
+                    startedCurly = true
+                    c(specifier.imported, st)
+                    if (specifier.local !== specifier.imported) {
+                        buffer.concat(" as ")
                         c(specifier.local, st)
-                        break
-                    case "ImportNamespaceSpecifier":
-                        buffer.concat("* as ")
-                        c(specifier.local, st)
-                        break
-                }
+                    }
+                    break
+                case "ImportDefaultSpecifier":
+                    c(specifier.local, st)
+                    break
+                case "ImportNamespaceSpecifier":
+                    buffer.concat("* as ")
+                    c(specifier.local, st)
+                    break
             }
-            if (startedCurly) buffer.concat("}")
-            if (node.specifiers.length > 0) buffer.concat(" from ")
-            c(node.source, st)
-            buffer.concat("\n")
         }
+        if (startedCurly) buffer.concat("}")
+        if (node.specifiers.length > 0) buffer.concat(" from ")
+        c(node.source, st)
+        buffer.concat("\n")
     },
     ImportExpression: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer;
 
-        if (generate) {
-            buffer.concat("import")
-            buffer.concat("(")
-            c(node.source, st)
-            buffer.concat(")")
-        }
+        buffer.concat("import")
+        buffer.concat("(")
+        c(node.source, st)
+        buffer.concat(")")
     },
     ArrayLiteral: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer,
             generateObjJ = compiler.options.generateObjJ,
             elementLength = node.elements.length;
-        if (!generate) {
-            buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
-            compiler.lastPos = node.start;
-        }
 
-        if (!generate) buffer.concat(" "); // Add an extra space if it looks something like this: "return(<expression>)". No space between return and expression.
         if (!st.receiverLevel) st.receiverLevel = 0;
         if (generateObjJ) {
             buffer.concat("@[");
@@ -1661,9 +1426,7 @@ pass2 = walk.make({
                 if (i)
                     buffer.concat(", ");
 
-                if (!generate) compiler.lastPos = elt.start;
                 c(elt, st, "Expression");
-                if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, elt.end));
             }
             if (!generateObjJ) buffer.concat("], " + elementLength + "))");
         }
@@ -1673,20 +1436,13 @@ pass2 = walk.make({
         else
             st.receiverLevel--;
 
-        if (!generate) compiler.lastPos = node.end;
     },
     DictionaryLiteral: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer,
             generateObjJ = compiler.options.generateObjJ,
             keyLength = node.keys.length;
-        if (!generate) {
-            buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
-            compiler.lastPos = node.start;
-        }
 
-        if (!generate) buffer.concat(" "); // Add an extra space if it looks something like this: "return(<expression>)". No space between return and expression.
         if (!st.receiverLevel) st.receiverLevel = 0;
         if (generateObjJ) {
             buffer.concat("@{");
@@ -1760,9 +1516,7 @@ pass2 = walk.make({
                 var value = node.values[i];
 
                 if (i) buffer.concat(", ");
-                if (!generate) compiler.lastPos = value.start;
                 c(value, st, "Expression");
-                if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, value.end));
             }
 
             buffer.concat("], [");
@@ -1772,25 +1526,20 @@ pass2 = walk.make({
 
                 if (i) buffer.concat(", ");
 
-                if (!generate) compiler.lastPos = key.start;
                 c(key, st, "Expression");
-                if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, key.end));
             }
             buffer.concat("]))");
         }
 
         if (!generateObjJ)
             st.receiverLevel--;
-        if (!generate) compiler.lastPos = node.end;
     },
     ImportStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer,
             localfilepath = node.localfilepath,
             generateObjJ = compiler.options.generateObjJ;
 
-        if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
         if (generateObjJ) {
             buffer.concat("@import ");
             buffer.concat(localfilepath ? "\"" : "<");
@@ -1801,11 +1550,9 @@ pass2 = walk.make({
             buffer.concat(node.filename.value);
             buffer.concat(localfilepath ? "\", YES);" : "\", NO);");
         }
-        if (!generate) compiler.lastPos = node.end;
     },
     ClassDeclarationStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             saveJSBuffer = compiler.jsBuffer,
             className = node.classname.name,
             classDef = compiler.getClassDef(className),
@@ -1822,8 +1569,6 @@ pass2 = walk.make({
         if (compiler.getTypeDef(className))
             throw compiler.error_message(className + " is already declared as a type", node.classname);
 
-
-        if (!generate) saveJSBuffer.concat(compiler.source.substring(compiler.lastPos, node.start));
 
         // First we declare the class
         if (node.superclassname) {
@@ -2085,14 +1830,11 @@ pass2 = walk.make({
             bodyLength = bodies.length;
 
         if (bodyLength > 0) {
-            if (!generate) compiler.lastPos = bodies[0].start;
-
             // And last add methods and other statements
             for (var i = 0; i < bodyLength; ++i) {
                 var body = bodies[i];
                 c(body, classScope, "Statement");
             }
-            if (!generate) saveJSBuffer.concat(compiler.source.substring(compiler.lastPos, body.end));
         }
 
         // We must make a new class object for our class definition if it's not a category
@@ -2119,7 +1861,6 @@ pass2 = walk.make({
         compiler.jsBuffer = saveJSBuffer;
 
         // Skip the "@end"
-        if (!generate) compiler.lastPos = node.end;
 
         if (generateObjJ)
             saveJSBuffer.concat("\n@end");
@@ -2153,7 +1894,6 @@ pass2 = walk.make({
     },
     ProtocolDeclarationStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer,
             protocolName = node.protocolname.name,
             protocolDef = compiler.getProtocolDef(protocolName),
@@ -2167,8 +1907,6 @@ pass2 = walk.make({
 
         compiler.imBuffer = new StringBuffer(compiler.createSourceMap, compiler.URL);
         compiler.cmBuffer = new StringBuffer(compiler.createSourceMap, compiler.URL);
-
-        if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
 
         if (generateObjJ) {
             buffer.concat("@protocol ");
@@ -2220,10 +1958,8 @@ pass2 = walk.make({
                 // We only add the required methods
                 for (var i = 0; i < requiredLength; ++i) {
                     var required = someRequired[i];
-                    if (!generate) compiler.lastPos = required.start;
                     c(required, protocolScope, "Statement");
                 }
-                if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, required.end));
             }
         }
 
@@ -2252,7 +1988,6 @@ pass2 = walk.make({
         compiler.jsBuffer = buffer;
 
         // Skip the "@end"
-        if (!generate) compiler.lastPos = node.end;
     },
     IvarDeclaration: function (node, st, c) {
         var compiler = st.compiler,
@@ -2268,7 +2003,6 @@ pass2 = walk.make({
     },
     MethodDeclarationStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             saveJSBuffer = compiler.jsBuffer,
             methodScope = new FunctionScope(st),
             isInstanceMethodType = node.methodtype === '-',
@@ -2286,8 +2020,6 @@ pass2 = walk.make({
                 compiler.addWarning(createMessage("Cannot find protocol declaration for '" + returnTypeProtocol.name + "'", returnTypeProtocol, compiler.source));
             }
         }
-
-        if (!generate) saveJSBuffer.concat(compiler.source.substring(compiler.lastPos, node.start));
 
         // If we are generating objective-J code write everything directly to the regular buffer
         // Otherwise we have one for instance methods and one for class methods.
@@ -2398,13 +2130,11 @@ pass2 = walk.make({
             if (!generateObjJ)
                 compiler.jsBuffer.concat(")\n");
 
-            if (!generate) compiler.lastPos = node.startOfBody;
             indentation += indentStep;
             methodScope.endOfScopeBody = true;
             c(node.body, methodScope, "Statement");
             methodScope.variablesNotReadWarnings();
             indentation = indentation.substring(indentationSize);
-            if (!generate) compiler.jsBuffer.concat(compiler.source.substring(compiler.lastPos, node.body.end));
 
             if (!generateObjJ)
                 compiler.jsBuffer.concat("\n");
@@ -2421,8 +2151,6 @@ pass2 = walk.make({
             compiler.jsBuffer.concat(")");
             compiler.jsBuffer = saveJSBuffer;
         }
-
-        if (!generate) compiler.lastPos = node.end;
 
         // Add the method to the class or protocol definition
         var def = st.classDef,
@@ -2486,7 +2214,6 @@ pass2 = walk.make({
     },
     MessageSendExpression: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             inlineMsgSend = compiler.options.inlineMsgSendFunctions,
             buffer = compiler.jsBuffer,
             nodeObject = node.object,
@@ -2509,10 +2236,7 @@ pass2 = walk.make({
             selector += ":";
         }
 
-        if (!generate) {
-            buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
-            compiler.lastPos = nodeObject ? nodeObject.start : node.arguments.length ? node.arguments[0].start : node.end;
-        } else if (!inlineMsgSend) {
+        if (!inlineMsgSend) {
             // Find out the total number of arguments so we can choose appropriate msgSend function. Only needed if call the function and not inline it
             var totalNoOfParameters = argumentsLength;
 
@@ -2520,7 +2244,6 @@ pass2 = walk.make({
                 totalNoOfParameters += parameters.length;
         }
         if (node.superObject) {
-            if (!generate) buffer.concat(" "); // Add an extra space if it looks something like this: "return(<expression>)". No space between return and expression.
             if (generateObjJ) {
                 buffer.concat("[super ");
             } else {
@@ -2544,61 +2267,55 @@ pass2 = walk.make({
                 buffer.concat("[");
                 c(nodeObject, st, "Expression");
             } else {
-                if (generate) {
-                    // If the recevier is not an identifier or an ivar that should have 'self.' infront we need to assign it to a temporary variable
-                    // If it is 'self' we assume it will never be nil and remove that test
-                    var receiverIsIdentifier = nodeObject.type === "Identifier" && !(st.currentMethodType() === "-" && compiler.getIvarForClass(nodeObject.name, st) && !st.getLvar(nodeObject.name, true)),
-                        selfLvar,
-                        receiverIsNotSelf;
+                // If the recevier is not an identifier or an ivar that should have 'self.' infront we need to assign it to a temporary variable
+                // If it is 'self' we assume it will never be nil and remove that test
+                var receiverIsIdentifier = nodeObject.type === "Identifier" && !(st.currentMethodType() === "-" && compiler.getIvarForClass(nodeObject.name, st) && !st.getLvar(nodeObject.name, true)),
+                    selfLvar,
+                    receiverIsNotSelf;
 
-                    if (receiverIsIdentifier) {
-                        var name = nodeObject.name,
-                            selfLvar = st.getLvar(name);
+                if (receiverIsIdentifier) {
+                    var name = nodeObject.name,
+                        selfLvar = st.getLvar(name);
 
-                        if (name === "self") {
-                            receiverIsNotSelf = !selfLvar || !selfLvar.scope || selfLvar.scope.assignmentToSelf;
-                        } else {
-                            receiverIsNotSelf = !!selfLvar || !compiler.getClassDef(name);
-                        }
-
-                        if (receiverIsNotSelf) {
-                            buffer.concat("(", node);
-                            c(nodeObject, st, "Expression");
-                            buffer.concat(" == null ? ", node);
-                            c(nodeObject, st, "Expression");
-                            buffer.concat(" : ", node);
-                        }
-                        if (inlineMsgSend)
-                            buffer.concat("(", node);
-                        c(nodeObject, st, "Expression");
+                    if (name === "self") {
+                        receiverIsNotSelf = !selfLvar || !selfLvar.scope || selfLvar.scope.assignmentToSelf;
                     } else {
-                        receiverIsNotSelf = true;
-                        if (!st.receiverLevel) st.receiverLevel = 0;
-                        buffer.concat("((___r" + ++st.receiverLevel, node);
-                        buffer.concat(" = ", node);
+                        receiverIsNotSelf = !!selfLvar || !compiler.getClassDef(name);
+                    }
+
+                    if (receiverIsNotSelf) {
+                        buffer.concat("(", node);
                         c(nodeObject, st, "Expression");
-                        buffer.concat(")", node);
-                        buffer.concat(", ___r" + st.receiverLevel, node);
                         buffer.concat(" == null ? ", node);
-                        buffer.concat("___r" + st.receiverLevel, node);
+                        c(nodeObject, st, "Expression");
                         buffer.concat(" : ", node);
-                        if (inlineMsgSend)
-                            buffer.concat("(", node);
-                        buffer.concat("___r" + st.receiverLevel, node);
-                        if (!(st.maxReceiverLevel >= st.receiverLevel))
-                            st.maxReceiverLevel = st.receiverLevel;
                     }
-                    if (inlineMsgSend) {
-                        buffer.concat(".isa.method_msgSend[\"", node);
-                        buffer.concat(selector, node);
-                        buffer.concat("\"] || _objj_forward)", node);
-                    } else {
-                        buffer.concat(".isa.objj_msgSend", node);
-                    }
+                    if (inlineMsgSend)
+                        buffer.concat("(", node);
+                    c(nodeObject, st, "Expression");
                 } else {
-                    buffer.concat(" "); // Add an extra space if it looks something like this: "return(<expression>)". No space between return and expression.
-                    buffer.concat("objj_msgSend(");
-                    buffer.concat(compiler.source.substring(compiler.lastPos, nodeObject.end));
+                    receiverIsNotSelf = true;
+                    if (!st.receiverLevel) st.receiverLevel = 0;
+                    buffer.concat("((___r" + ++st.receiverLevel, node);
+                    buffer.concat(" = ", node);
+                    c(nodeObject, st, "Expression");
+                    buffer.concat(")", node);
+                    buffer.concat(", ___r" + st.receiverLevel, node);
+                    buffer.concat(" == null ? ", node);
+                    buffer.concat("___r" + st.receiverLevel, node);
+                    buffer.concat(" : ", node);
+                    if (inlineMsgSend)
+                        buffer.concat("(", node);
+                    buffer.concat("___r" + st.receiverLevel, node);
+                    if (!(st.maxReceiverLevel >= st.receiverLevel))
+                        st.maxReceiverLevel = st.receiverLevel;
+                }
+                if (inlineMsgSend) {
+                    buffer.concat(".isa.method_msgSend[\"", node);
+                    buffer.concat(selector, node);
+                    buffer.concat("\"] || _objj_forward)", node);
+                } else {
+                    buffer.concat(".isa.objj_msgSend", node);
                 }
             }
         }
@@ -2628,7 +2345,7 @@ pass2 = walk.make({
         } else {
             var selectorJSPath;
 
-            if (generate && !node.superObject) {
+            if (!node.superObject) {
                 if (!inlineMsgSend) {
                     if (totalNoOfParameters < 4) {
                         buffer.concat("" + totalNoOfParameters, node);
@@ -2674,29 +2391,17 @@ pass2 = walk.make({
                 var argument = nodeArguments[i];
 
                 buffer.concat(", ", node);
-                if (!generate)
-                    compiler.lastPos = argument.start;
                 c(argument, st, "Expression");
-                if (!generate) {
-                    buffer.concat(compiler.source.substring(compiler.lastPos, argument.end));
-                    compiler.lastPos = argument.end;
-                }
             }
 
             if (parameters) for (var i = 0; i < parameters.length; ++i) {
                 var parameter = parameters[i];
 
                 buffer.concat(", ", node);
-                if (!generate)
-                    compiler.lastPos = parameter.start;
                 c(parameter, st, "Expression");
-                if (!generate) {
-                    buffer.concat(compiler.source.substring(compiler.lastPos, parameter.end));
-                    compiler.lastPos = parameter.end;
-                }
             }
 
-            if (generate && !node.superObject) {
+            if (!node.superObject) {
                 if (receiverIsNotSelf)
                     buffer.concat(")", node);
                 if (!receiverIsIdentifier)
@@ -2705,51 +2410,30 @@ pass2 = walk.make({
 
             buffer.concat(")", node);
         }
-
-        if (!generate) compiler.lastPos = node.end;
     },
     SelectorLiteralExpression: function (node, st, c) {
         var compiler = st.compiler,
             buffer = compiler.jsBuffer,
-            generate = compiler.generate,
             generateObjJ = compiler.options.generateObjJ;
-
-        if (!generate) {
-            buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
-            buffer.concat(" "); // Add an extra space if it looks something like this: "return(@selector(a:))". No space between return and expression.
-        }
 
         buffer.concat(generateObjJ ? "@selector(" : "sel_getUid(\"", node);
         buffer.concat(node.selector);
         buffer.concat(generateObjJ ? ")" : "\")");
-
-        if (!generate) compiler.lastPos = node.end;
     },
     ProtocolLiteralExpression: function (node, st, c) {
         var compiler = st.compiler,
             buffer = compiler.jsBuffer,
-            generate = compiler.generate,
             generateObjJ = compiler.options.generateObjJ;
 
-        if (!generate) {
-            buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
-            buffer.concat(" "); // Add an extra space if it looks something like this: "return(@protocol(a))". No space between return and expression.
-        }
         buffer.concat(generateObjJ ? "@protocol(" : "objj_getProtocol(\"", node);
         c(node.id, st, "VariablePattern");
         buffer.concat(generateObjJ ? ")" : "\")");
-        if (!generate) compiler.lastPos = node.end;
     },
     Reference: function (node, st, c) {
         var compiler = st.compiler,
             buffer = compiler.jsBuffer,
-            generate = compiler.generate,
             generateObjJ = compiler.options.generateObjJ;
 
-        if (!generate) {
-            buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
-            buffer.concat(" "); // Add an extra space if it looks something like this: "return(<expression>)". No space between return and expression.
-        }
         if (generateObjJ) {
             buffer.concat("@ref(", node);
             buffer.concat(node.element.name, node.element);
@@ -2761,42 +2445,28 @@ pass2 = walk.make({
             c(node.element, st, "Expression");
             buffer.concat("; }");
         }
-
-        if (!generate) compiler.lastPos = node.end;
     },
     Dereference: function (node, st, c) {
         var compiler = st.compiler,
             buffer = compiler.jsBuffer,
-            generate = compiler.generate,
             generateObjJ = compiler.options.generateObjJ;
 
         checkCanDereference(st, node.expr);
 
         // @deref(y) -> y()
         // @deref(@deref(y)) -> y()()
-        if (!generate) {
-            buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
-            compiler.lastPos = node.expr.start;
-        }
         if (generateObjJ)
             buffer.concat("@deref(");
         c(node.expr, st, "Expression");
-        if (!generate) buffer.concat(compiler.source.substring(compiler.lastPos, node.expr.end));
         if (generateObjJ)
             buffer.concat(")");
         else
             buffer.concat("()");
-        if (!generate) compiler.lastPos = node.end;
     },
     ClassStatement: function (node, st, c) {
         var compiler = st.compiler,
             buffer = compiler.jsBuffer,
             generateObjJ = compiler.options.generateObjJ;
-        if (!compiler.generate) {
-            buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
-            compiler.lastPos = node.start;
-            buffer.concat("//");
-        }
         if (generateObjJ) {
             buffer.concat("@class ");
             c(node.id, st, "VariablePattern");
@@ -2815,11 +2485,6 @@ pass2 = walk.make({
         var compiler = st.compiler,
             buffer = compiler.jsBuffer,
             generateObjJ = compiler.options.generateObjJ;
-        if (!compiler.generate) {
-            buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
-            compiler.lastPos = node.start;
-            buffer.concat("//");
-        }
         if (generateObjJ) {
             buffer.concat("@global ");
             c(node.id, st, "VariablePattern");
@@ -2828,15 +2493,9 @@ pass2 = walk.make({
     },
     PreprocessStatement: function (node, st, c) {
         var compiler = st.compiler;
-        if (!compiler.generate) {
-            compiler.jsBuffer.concat(compiler.source.substring(compiler.lastPos, node.start));
-            compiler.lastPos = node.start;
-            compiler.jsBuffer.concat("//");
-        }
     },
     TypeDefStatement: function (node, st, c) {
         var compiler = st.compiler,
-            generate = compiler.generate,
             buffer = compiler.jsBuffer,
             typeDefName = node.typedefname.name,
             typeDef = compiler.getTypeDef(typeDefName),
@@ -2847,9 +2506,6 @@ pass2 = walk.make({
 
         if (compiler.getClassDef(typeDefName))
             throw compiler.error_message(typeDefName + " is already declared as class", node.typedefname);
-
-        if (!generate)
-            buffer.concat(compiler.source.substring(compiler.lastPos, node.start));
 
         buffer.concat("{var the_typedef = objj_allocateTypeDef(\"" + typeDefName + "\");", node);
 
@@ -2862,7 +2518,5 @@ pass2 = walk.make({
         buffer.concat("}");
 
         // Skip to the end
-        if (!generate)
-            compiler.lastPos = node.end;
     }
 });
