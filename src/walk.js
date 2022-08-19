@@ -1165,6 +1165,12 @@ pass2 = walk.make({
             (generate && nodePrecedence(node, node.right, true) ? surroundExpression(c) : c)(node.right, st, "Expression");
         }
     },
+    ParenthesizedExpression: function (node, st, c, format) {
+        const buffer = st.compiler.jsBuffer;
+        buffer.concat("(")
+        c(node.expression, st, "Expression");
+        buffer.concat(")")
+    },
     AssignmentExpression: function (node, st, c, format) {
         var compiler = st.compiler,
             generate = compiler.generate,
