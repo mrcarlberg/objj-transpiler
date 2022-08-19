@@ -1,8 +1,10 @@
+import { SourceNode } from "source-map"
+
 export class StringBuffer {
 
     constructor(useSourceNode, file, sourceContent) {
         if (useSourceNode) {
-            this.rootNode = new sourceMap.SourceNode();
+            this.rootNode = new SourceNode();
             this.concat = this.concatSourceNode;
             this.toString = this.toStringSourceNode;
             this.isEmpty = this.isEmptySourceNode;
@@ -50,7 +52,7 @@ export class StringBuffer {
     concatSourceNode(aString, node, originalName) {
         if (node) {
             //console.log("Snippet: " + aString + ", line: " + node.loc.start.line + ", column: " + node.loc.start.column + ", source: " + node.loc.source);
-            this.rootNode.add(new sourceMap.SourceNode(node.loc.start.line, node.loc.start.column, node.loc.source, aString, originalName));
+            this.rootNode.add(new SourceNode(node.loc.start.line, node.loc.start.column, node.loc.source, aString, originalName));
         } else
             this.rootNode.add(aString);
         if (!this.notEmpty)

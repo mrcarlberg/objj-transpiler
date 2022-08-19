@@ -1,15 +1,15 @@
-export let pass2
-export let pass1
+export let pass1, pass2
 
 import walk from "acorn-walk"
+import { SourceNode, SourceMapConsumer } from "source-map";
+
 import { Scope, FunctionScope } from "./scope";
-import { wordsRegexp } from "./util";
-import { TypeDef } from "./definition";
+import { TypeDef, MethodDef} from "./definition";
 import { ClassDef } from "./class-def";
-import { StringBuffer } from "./buffer";
 import { ProtocolDef } from "./protocol";
-import { MethodDef } from "./definition";
-import { GlobalVariableMaybeWarning, warningUnknownClassOrGlobal } from "./warning";
+import { StringBuffer } from "./buffer";
+import { GlobalVariableMaybeWarning, createMessage, warningUnknownClassOrGlobal, warningCreateGlobalInsideFunctionOrMethod, warningShadowIvar, warningUnknownIvarType } from "./warning";
+import { wordsRegexp } from "./util";
 import { setupOptions } from "./options";
 
 function isIdempotentExpression(node) {

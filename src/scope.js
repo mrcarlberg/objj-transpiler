@@ -1,4 +1,5 @@
 import { warningUnusedButSetVariable } from "./warning.js";
+import { createMessage } from "./warning.js";
 
 export class Scope {
 
