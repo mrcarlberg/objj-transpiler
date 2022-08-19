@@ -254,11 +254,12 @@ pass2 = walk.make({
         var compiler = st.compiler,
             generate = compiler.generate;
         if (generate) compiler.jsBuffer.concat(indentation);
-        let isDirective = node.directive
         if (node.expression.type === "Reference") throw compiler.error_message("Can't have reference of expression as a statement", node.expression)
-        //if (!isDirective) compiler.jsBuffer.concat("(");  // TODO: This will probably throw parentheses everywhere.
-        c(node.expression, st, "Expression");
-        //if (!isDirective) compiler.jsBuffer.concat(")");
+        if ((node.expression.type === "AssignmentExpression" && node.expression.left.type === "ObjectPattern") || node.expression.type === "FunctionExpression" || node.expression.type === "ObjectExpression" || (node.expression.type === "BinaryExpression" && node.expression.left.type === "FunctionExpression") || (node.expression.type === "Literal" && node.expression.value === "use strict" && !node.directive)) {
+            surroundExpression(c)(node.expression, st, "Expression")
+        } else {
+            c(node.expression, st, "Expression");
+        }
         if (generate) compiler.jsBuffer.concat(";\n", node);
     },
     IfStatement: function (node, st, c, format) {
