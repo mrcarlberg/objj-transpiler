@@ -288,7 +288,8 @@ pass2 = walk.make({
                 buffer.concatFormat(format.afterRightParenthesis);
             } else {
                 // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
-                buffer.concat(node.consequent.type === "EmptyStatement" ? ");\n" : ")\n", node);
+                buffer.concat(")")
+                if (node.consequent.type !== "EmptyStatement") buffer.concat("\n")
             }
         }
         indentation += indentStep;
@@ -593,7 +594,8 @@ pass2 = walk.make({
                 buffer.concatFormat(format.afterRightParenthesis);
             } else {
                 // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
-                buffer.concat(body.type === "EmptyStatement" ? ")\n" : ")\n");
+                buffer.concat(")");
+                if (node.body.type !== "EmptyStatement") buffer.concat("\n")
             }
         indentation += indentStep;
         c(body, st, "Statement");
@@ -656,7 +658,8 @@ pass2 = walk.make({
                 buffer.concatFormat(format.afterRightParenthesis);
             } else {
                 // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
-                buffer.concat(body.type === "EmptyStatement" ? ")\n" : ")\n");
+                buffer.concat(")");
+                if (node.body.type !== "EmptyStatement") buffer.concat("\n")
             }
         indentation += indentStep;
         c(body, st, "Statement");
@@ -797,7 +800,7 @@ pass2 = walk.make({
             }
         }
         if (generate) {
-            if ((st.isDefaultExport || !node.id) && !decl && !st.isComputed) buffer.concat("(")
+            if (st.isDefaultExport && !decl) buffer.concat("(")
             if (node.async) buffer.concat("async ");
             if (!st.skipFunctionKeyword) buffer.concat("function", node);
             if (node.generator) buffer.concat("*")
@@ -828,7 +831,7 @@ pass2 = walk.make({
         indentation += indentStep;
         inner.endOfScopeBody = true;
         c(node.body, inner, "Statement");
-        if ((st.isDefaultExport || !node.id) && !decl && !st.isComputed) buffer.concat(")")
+        if (st.isDefaultExport && !decl) buffer.concat(")")
         inner.variablesNotReadWarnings();
         indentation = indentation.substring(indentationSize);
         inner.copyAddedSelfToIvarsToParent();
@@ -1390,9 +1393,7 @@ pass2 = walk.make({
             buffer = compiler.jsBuffer;
 
         if (generate) {
-            buffer.concat("(")
             c(node.expression, st)
-            buffer.concat(")")
         }
     },
     AwaitExpression: function (node, st, c, format) {
