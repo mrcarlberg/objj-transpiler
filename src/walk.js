@@ -998,7 +998,7 @@ pass2 = walk.make({
                     prop.value.id = prop.key
                     st.isComputed = prop.computed
                     st.skipFunctionKeyword = true
-                    c(prop.value, st)
+                    c(prop.value, st, "Expression")
                     delete st.writeFunction
                     delete st.isComputed
 
@@ -1022,7 +1022,7 @@ pass2 = walk.make({
                         buffer.concat(compiler.source.substring(compiler.lastPos, prop.key.start));
                         compiler.lastPos = prop.key.start + 1;
                     }
-                    if (!prop.shorthand) c(prop.value, st, "Pattern");
+                    if (!prop.shorthand) c(prop.value, st, "Expression");
                 }
             } else {
                 c(prop, st)
