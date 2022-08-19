@@ -369,28 +369,6 @@ export class ObjJAcornCompiler {
 
 }
 
-/*!
-    This function is used to calculate the number of lines that is added when a 'new Function(...) call is used.
-    This is used to make sure source maps are correct
-    Currently Safari is adding one line and Chrome and Firefox is adding two lines.
-
-    We calculate this by creating a function and counts the number of new lines at the top of the function
-    The result is cached so we only need to make the calculation once.
- */
-export function numberOfLinesAtTopOfFunction() {
-    var f = new Function("x", "return x;");
-    var fString = f.toString();
-    var index = fString.indexOf("return x;");
-    var firstPart = fString.substring(0, index);
-    var numberOfLines = (firstPart.match(/\n/g) || []).length;
-
-    ObjJAcornCompiler.numberOfLinesAtTopOfFunction = function () {
-        return numberOfLines;
-    }
-
-    return numberOfLines;
-}
-
 ObjJAcornCompiler.methodDefsFromMethodList = function (/* Array */ methodList) {
     var methodSize = methodList.length,
         myMethods = Object.create(null);
