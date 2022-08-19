@@ -262,35 +262,24 @@ pass2 = walk.make({
         }
         if (generate) compiler.jsBuffer.concat(";\n", node);
     },
-    IfStatement: function (node, st, c, format) {
+    IfStatement: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer;
         if (generate) {
             buffer = compiler.jsBuffer;
-            if (format) {
-                buffer.concat("if", node);
-                buffer.concatFormat(format.beforeLeftParenthesis);
-                buffer.concat("(");
-            } else {
-                // Keep the 'else' and 'if' on the same line if it is an 'else if'
-                if (!st.superNodeIsElse)
-                    buffer.concat(indentation);
-                else
-                    delete st.superNodeIsElse;
-                buffer.concat("if (", node);
-            }
+            // Keep the 'else' and 'if' on the same line if it is an 'else if'
+            if (!st.superNodeIsElse)
+                buffer.concat(indentation);
+            else
+                delete st.superNodeIsElse;
+            buffer.concat("if (", node);
         }
         c(node.test, st, "Expression");
         if (generate) {
-            if (format) {
-                buffer.concat(")", node);
-                buffer.concatFormat(format.afterRightParenthesis);
-            } else {
-                // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
-                buffer.concat(")")
-                if (node.consequent.type !== "EmptyStatement") buffer.concat("\n")
-            }
+            // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
+            buffer.concat(")")
+            if (node.consequent.type !== "EmptyStatement") buffer.concat("\n")
         }
         indentation += indentStep;
         c(node.consequent, st, "Statement");
@@ -299,16 +288,10 @@ pass2 = walk.make({
         if (alternate) {
             var alternateNotIf = alternate.type !== "IfStatement";
             if (generate) {
-                if (format) {
-                    buffer.concatFormat(format.beforeElse); // Do we need this?
-                    buffer.concat("else", node);
-                    buffer.concatFormat(format.afterElse);
-                } else {
-                    var emptyStatement = alternate.type === "EmptyStatement";
-                    buffer.concat(indentation);
-                    // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
-                    buffer.concat(alternateNotIf ? emptyStatement ? "else" : "else\n" : "else ", node);
-                }
+                var emptyStatement = alternate.type === "EmptyStatement";
+                buffer.concat(indentation);
+                // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
+                buffer.concat(alternateNotIf ? emptyStatement ? "else" : "else\n" : "else ", node);
             }
             if (alternateNotIf)
                 indentation += indentStep;
@@ -319,144 +302,85 @@ pass2 = walk.make({
             if (alternateNotIf) indentation = indentation.substring(indentationSize);
         }
     },
-    LabeledStatement: function (node, st, c, format) {
+    LabeledStatement: function (node, st, c) {
         var compiler = st.compiler;
         if (compiler.generate) {
             var buffer = compiler.jsBuffer;
-            if (!format) buffer.concat(indentation);
             c(node.label, st, "VariablePattern");
-            if (format) {
-                buffer.concat(":", node);
-                buffer.concatFormat(format.afterColon);
-            } else {
-                buffer.concat(": ", node);
-            }
+            buffer.concat(": ", node);
         }
         c(node.body, st, "Statement");
     },
-    BreakStatement: function (node, st, c, format) {
+    BreakStatement: function (node, st, c) {
         var compiler = st.compiler;
         if (compiler.generate) {
             var label = node.label,
                 buffer = compiler.jsBuffer;
-            if (!format) buffer.concat(indentation);
+            buffer.concat(indentation);
             if (label) {
-                if (format) {
-                    buffer.concat("break", node);
-                    buffer.concatFormat(format.beforeLabel);
-                } else {
-                    buffer.concat("break ", node);
-                }
+                buffer.concat("break ", node);
                 c(label, st, "VariablePattern");
-                if (!format) buffer.concat(";\n");
+                buffer.concat(";\n");
             } else
-                buffer.concat(format ? "break" : "break;\n", node);
+                buffer.concat("break;\n", node);
         }
     },
-    ContinueStatement: function (node, st, c, format) {
+    ContinueStatement: function (node, st, c) {
         var compiler = st.compiler;
         if (compiler.generate) {
             var label = node.label,
                 buffer = compiler.jsBuffer;
-            if (!format) buffer.concat(indentation);
+            buffer.concat(indentation);
             if (label) {
-                if (format) {
-                    buffer.concat("continue", node);
-                    buffer.concatFormat(format.beforeLabel);
-                } else {
-                    buffer.concat("continue ", node);
-                }
+                buffer.concat("continue ", node);
                 c(label, st, "VariablePattern");
-                if (!format) buffer.concat(";\n");
+                buffer.concat(";\n");
             } else
-                buffer.concat(format ? "continue" : "continue;\n", node);
+                buffer.concat("continue;\n", node);
         }
     },
-    WithStatement: function (node, st, c, format) {
+    WithStatement: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer;
         if (generate) {
             buffer = compiler.jsBuffer;
-            if (format) {
-                buffer.concat("with", node);
-                buffer.concatFormat(format.beforeLeftParenthesis);
-                buffer.concat("(");
-            } else {
-                buffer.concat(indentation);
-                buffer.concat("with(", node);
-            }
+            buffer.concat(indentation);
+            buffer.concat("with(", node);
         }
         c(node.object, st, "Expression");
         if (generate)
-            if (format) {
-                buffer.concat(")", node);
-                buffer.concatFormat(format.afterRightParenthesis);
-            } else {
-                buffer.concat(")\n", node);
-            }
+            buffer.concat(")\n", node);
         indentation += indentStep;
         c(node.body, st, "Statement");
         indentation = indentation.substring(indentationSize);
     },
-    SwitchStatement: function (node, st, c, format) {
+    SwitchStatement: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer;
         if (generate) {
             buffer = compiler.jsBuffer;
-            if (format) {
-                buffer.concat("switch", node);
-                buffer.concatFormat(format.beforeLeftParenthesis);
-                buffer.concat("(", node);
-            } else {
-                buffer.concat(indentation);
-                buffer.concat("switch(", node);
-            }
+            buffer.concat(indentation);
+            buffer.concat("switch(", node);
         }
         c(node.discriminant, st, "Expression");
         if (generate)
-            if (format) {
-                buffer.concat(")");
-                buffer.concatFormat(format.afterRightParenthesis);
-                buffer.concat("{");
-                buffer.concatFormat(format.afterLeftBrace);
-            } else {
-                buffer.concat(") {\n");
-            }
+            buffer.concat(") {\n");
         indentation += indentStep;
         for (var i = 0; i < node.cases.length; ++i) {
             var cs = node.cases[i];
             if (cs.test) {
                 if (generate) {
-                    if (format) {
-                        buffer.concatFormat(format.beforeCase);
-                        buffer.concat("case", node);
-                        buffer.concatFormat(format.afterCase);
-                    } else {
-                        buffer.concat(indentation);
-                        buffer.concat("case ");
-                    }
+                    buffer.concat(indentation);
+                    buffer.concat("case ");
                 }
                 c(cs.test, st, "Expression");
                 if (generate)
-                    if (format) {
-                        buffer.concat(":");
-                        buffer.concatFormat(format.afterColon);
-                    } else {
-                        buffer.concat(":\n");
-                    }
+                    buffer.concat(":\n");
             } else
                 if (generate)
-                    if (format) {
-                        buffer.concatFormat(format.beforeCase);
-                        buffer.concat("default");
-                        buffer.concatFormat(format.afterCase);
-                        buffer.concat(":");
-                        buffer.concatFormat(format.afterColon);
-                    } else {
-                        buffer.concat("default:\n");
-                    }
+                    buffer.concat("default:\n");
             indentation += indentStep;
             for (var j = 0; j < cs.consequent.length; ++j)
                 c(cs.consequent[j], st, "Statement");
@@ -464,55 +388,50 @@ pass2 = walk.make({
         }
         indentation = indentation.substring(indentationSize);
         if (generate) {
-            if (format) {
-                buffer.concatFormat(format.beforeRightBrace);
-                buffer.concat("}");
-            } else {
-                buffer.concat(indentation);
-                buffer.concat("}\n");
-            }
+            buffer.concat(indentation);
+            buffer.concat("}\n");
         }
     },
-    ReturnStatement: function (node, st, c, format) {
+    ReturnStatement: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer;
         if (generate) {
             buffer = compiler.jsBuffer;
-            if (!format) buffer.concat(indentation);
+            buffer.concat(indentation);
             buffer.concat("return", node);
         }
         if (node.argument) {
-            if (generate) buffer.concatFormat(format ? format.beforeExpression : " ");
+            if (generate) buffer.concatFormat(" ");
             c(node.argument, st, "Expression");
         }
-        if (generate && !format) buffer.concat(";\n");
+        if (generate) buffer.concat(";\n");
     },
-    ThrowStatement: function (node, st, c, format) {
+    ThrowStatement: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer;
         if (generate) {
             buffer = compiler.jsBuffer;
-            if (!format) buffer.concat(indentation);
+            buffer.concat(indentation);
             buffer.concat("throw", node);
-            buffer.concatFormat(format ? format.beforeExpression : " ");
+            buffer.concatFormat(" ");
         }
         c(node.argument, st, "Expression");
-        if (generate && !format) buffer.concat(";\n");
+        if (generate) buffer.concat(";\n");
     },
-    TryStatement: function (node, st, c, format) {
+    TryStatement: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer;
         if (generate) {
             buffer = compiler.jsBuffer;
-            if (!format) buffer.concat(indentation);
+            buffer.concat(indentation);
             buffer.concat("try", node);
-            buffer.concatFormat(format ? format.beforeStatement : " ");
+            buffer.concatFormat(" ");
         }
         indentation += indentStep;
-        if (!format) st.skipIndentation = true;
+        st.skipIndentation = true;
         c(node.block, st, "Statement");
         indentation = indentation.substring(indentationSize);
         if (node.handler) {
@@ -522,25 +441,13 @@ pass2 = walk.make({
                 name = param?.name;
             if (name) inner.vars[name] = { type: "catch clause", node: param };
             if (generate) {
-                if (format) {
-                    buffer.concatFormat(format.beforeCatch);
-                    buffer.concat("catch");
-                    buffer.concatFormat(format.afterCatch);
-                    if (param) {
-                        buffer.concat("(");
-                        c(param, st, "Pattern");
-                        buffer.concat(")");
-                    }
-                    buffer.concatFormat(format.beforeCatchStatement);
-                } else {
-                    buffer.concat("\n");
-                    buffer.concat(indentation);
-                    buffer.concat("catch");
-                    if (param) {
-                        buffer.concat("(")
-                        c(param, st, "Pattern");
-                        buffer.concat(") ");
-                    }
+                buffer.concat("\n");
+                buffer.concat(indentation);
+                buffer.concat("catch");
+                if (param) {
+                    buffer.concat("(")
+                    c(param, st, "Pattern");
+                    buffer.concat(") ");
                 }
             }
             indentation += indentStep;
@@ -553,191 +460,121 @@ pass2 = walk.make({
         }
         if (node.finalizer) {
             if (generate) {
-                if (format) {
-                    buffer.concatFormat(format.beforeCatch);
-                    buffer.concat("finally");
-                    buffer.concatFormat(format.beforeCatchStatement);
-                } else {
-                    buffer.concat("\n");
-                    buffer.concat(indentation);
-                    buffer.concat("finally ");
-                }
+                buffer.concat("\n");
+                buffer.concat(indentation);
+                buffer.concat("finally ");
             }
             indentation += indentStep;
             st.skipIndentation = true;
             c(node.finalizer, st, "Statement");
             indentation = indentation.substring(indentationSize);
         }
-        if (generate && !format)
+        if (generate)
             buffer.concat("\n");
     },
-    WhileStatement: function (node, st, c, format) {
+    WhileStatement: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             body = node.body,
             buffer;
         if (generate) {
             buffer = compiler.jsBuffer;
-            if (format) {
-                buffer.concat("while", node);
-                buffer.concatFormat(format.beforeLeftParenthesis);
-                buffer.concat("(");
-            } else {
-                buffer.concat(indentation);
-                buffer.concat("while (", node);
-            }
+            buffer.concat(indentation);
+            buffer.concat("while (", node);
         }
         c(node.test, st, "Expression");
         if (generate)
-            if (format) {
-                buffer.concat(")");
-                buffer.concatFormat(format.afterRightParenthesis);
-            } else {
-                // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
-                buffer.concat(")");
-                if (node.body.type !== "EmptyStatement") buffer.concat("\n")
-            }
+            // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
+            buffer.concat(")");
+            if (node.body.type !== "EmptyStatement") buffer.concat("\n")
         indentation += indentStep;
         c(body, st, "Statement");
         indentation = indentation.substring(indentationSize);
     },
-    DoWhileStatement: function (node, st, c, format) {
+    DoWhileStatement: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer;
         if (generate) {
             buffer = compiler.jsBuffer;
-            if (format) {
-                buffer.concat("do", node);
-                buffer.concatFormat(format.beforeStatement);
-            } else {
-                buffer.concat(indentation);
-                buffer.concat("do\n", node);
-            }
+            buffer.concat(indentation);
+            buffer.concat("do\n", node);
         }
         indentation += indentStep;
         c(node.body, st, "Statement");
         indentation = indentation.substring(indentationSize);
         if (generate) {
-            if (format) {
-                buffer.concat("while");
-                buffer.concatFormat(format.beforeLeftParenthesis);
-                buffer.concat("(");
-            } else {
-                buffer.concat(indentation);
-                buffer.concat("while (");
-            }
+            buffer.concat(indentation);
+            buffer.concat("while (");
         }
         c(node.test, st, "Expression");
-        if (generate) buffer.concatFormat(format ? ")" : ")\n");
+        if (generate) buffer.concatFormat(")\n");
     },
-    ForStatement: function (node, st, c, format) {
+    ForStatement: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             body = node.body,
             buffer;
         if (generate) {
             buffer = compiler.jsBuffer;
-            if (format) {
-                buffer.concat("for", node);
-                buffer.concatFormat(format.beforeLeftParenthesis);
-                buffer.concat("(");
-            } else {
-                buffer.concat(indentation);
-                buffer.concat("for (", node);
-            }
+            buffer.concat(indentation);
+            buffer.concat("for (", node);
         }
         if (node.init) c(node.init, st, "ForInit");
-        if (generate) buffer.concat(format ? ";" : "; ");
+        if (generate) buffer.concat("; ");
         if (node.test) c(node.test, st, "Expression");
-        if (generate) buffer.concat(format ? ";" : "; ");
+        if (generate) buffer.concat("; ");
         if (node.update) c(node.update, st, "Expression");
-        if (generate)
-            if (format) {
-                buffer.concat(")");
-                buffer.concatFormat(format.afterRightParenthesis);
-            } else {
-                // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
-                buffer.concat(")");
-                if (node.body.type !== "EmptyStatement") buffer.concat("\n")
-            }
+        if (generate) {
+            // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
+            buffer.concat(")");
+            if (node.body.type !== "EmptyStatement") buffer.concat("\n")
+        }
         indentation += indentStep;
         c(body, st, "Statement");
         indentation = indentation.substring(indentationSize);
     },
-    ForInStatement: function (node, st, c, format) {
+    ForInStatement: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             body = node.body,
             buffer;
         if (generate) {
             buffer = compiler.jsBuffer;
-            if (format) {
-                buffer.concat("for", node);
-                buffer.concatFormat(format.beforeLeftParenthesis);
-                buffer.concat("(");
-            } else {
-                buffer.concat(indentation);
-                buffer.concat("for (", node);
-            }
+            buffer.concat(indentation);
+            buffer.concat("for (", node);
         }
         c(node.left, st, "ForInit");
         if (generate)
-            if (format) {
-                buffer.concatFormat(format.beforeIn);
-                buffer.concat("in");
-                buffer.concatFormat(format.afterIn);
-            } else {
-                buffer.concat(" in ");
-            }
+            buffer.concat(" in ");
         c(node.right, st, "Expression");
-        if (generate)
-            if (format) {
-                buffer.concat(")");
-                buffer.concatFormat(format.afterRightParenthesis);
-            } else {
-                // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
-                buffer.concat(body.type === "EmptyStatement" ? ")\n" : ")\n");
-            }
+        if (generate) {
+            // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
+            buffer.concat(body.type === "EmptyStatement" ? ")\n" : ")\n");
+        }
         indentation += indentStep;
         c(body, st, "Statement");
         indentation = indentation.substring(indentationSize);
     },
-    ForOfStatement: function (node, st, c, format) {  // TODO: Fix code duplication with 'for in'-
+    ForOfStatement: function (node, st, c) {  // TODO: Fix code duplication with 'for in'-
         var compiler = st.compiler,
             generate = compiler.generate,
             body = node.body,
             buffer;
         if (generate) {
             buffer = compiler.jsBuffer;
-            if (format) {
-                buffer.concat("for", node);
-                buffer.concatFormat(format.beforeLeftParenthesis);
-                buffer.concat("(");
-            } else {
-                buffer.concat("for", node);
-                if (node.await) buffer.concat(" await ");
-                buffer.concat("(");
-            }
+            buffer.concat("for", node);
+            if (node.await) buffer.concat(" await ");
+            buffer.concat("(");
         }
         c(node.left, st, "ForInit");
         if (generate)
-            if (format) {
-                buffer.concatFormat(format.beforeIn); // TODO: Should we have different format options for 'of'?
-                buffer.concat("of");
-                buffer.concatFormat(format.afterIn);
-            } else {
-                buffer.concat(" of ");
-            }
+            buffer.concat(" of ");
         c(node.right, st, "Expression");
-        if (generate)
-            if (format) {
-                buffer.concat(")");
-                buffer.concatFormat(format.afterRightParenthesis);
-            } else {
-                // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
-                buffer.concat(body.type === "EmptyStatement" ? ")\n" : ")\n");
-            }
+        if (generate) {
+            // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
+            buffer.concat(body.type === "EmptyStatement" ? ")\n" : ")\n");
+        }
         indentation += indentStep;
         c(body, st, "Statement");
         indentation = indentation.substring(indentationSize);
@@ -757,19 +594,15 @@ pass2 = walk.make({
             c(node, st, "Expression");
         }
     },
-    DebuggerStatement: function (node, st, c, format) {
+    DebuggerStatement: function (node, st, c) {
         var compiler = st.compiler;
         if (compiler.generate) {
             var buffer = compiler.jsBuffer;
-            if (format) {
-                buffer.concat("debugger", node);
-            } else {
-                buffer.concat(indentation);
-                buffer.concat("debugger;\n", node);
-            }
+            buffer.concat(indentation);
+            buffer.concat("debugger;\n", node);
         }
     },
-    Function: function (node, st, c, format) {
+    Function: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer = compiler.jsBuffer,
@@ -780,7 +613,7 @@ pass2 = walk.make({
         inner.isDecl = decl;
         for (var i = 0; i < node.params.length; ++i)
             inner.vars[node.params[i].name] = { type: "argument", node: node.params[i] };
-        if (generate && !format)
+        if (generate)
             buffer.concat(indentation);
         if (id) {
             var name = id.name;
@@ -805,28 +638,22 @@ pass2 = walk.make({
             if (!st.skipFunctionKeyword) buffer.concat("function", node);
             if (node.generator) buffer.concat("*")
             if (!compiler.transformNamedFunctionDeclarationToAssignment && id) {
-                if (!format) buffer.concat(" ");
+                buffer.concat(" ");
                 if (st.isComputed) buffer.concat("[")
                 c(id, st);
                 if (st.isComputed) buffer.concat("]")
             }
-            if (format) buffer.concatFormat(format.beforeLeftParenthesis);
             buffer.concat("(");
             for (var i = 0; i < node.params.length; ++i) {
                 if (i)
-                    buffer.concat(format ? "," : ", ");
+                    buffer.concat(", ");
                 if (node.params[i].type == "RestElement") {
                     c(node.params[i], st, "RestElement");
                 } else {
                     c(node.params[i], st, "Pattern");
                 }
             }
-            if (format) {
-                buffer.concat(")");
-                buffer.concatFormat(format.afterRightParenthesis);
-            } else {
-                buffer.concat(")\n");
-            }
+            buffer.concat(")\n");
         }
         indentation += indentStep;
         inner.endOfScopeBody = true;
@@ -860,7 +687,7 @@ pass2 = walk.make({
             buffer.concat(";\n")
         }
     },
-    VariableDeclaration: function (node, st, c, format) {
+    VariableDeclaration: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             isVar = node.kind === "var",
@@ -868,8 +695,8 @@ pass2 = walk.make({
             buffer;
         if (generate) {
             buffer = compiler.jsBuffer;
-            if (!st.isFor && !format) buffer.concat(indentation);
-            buffer.concat(format ? node.kind : node.kind + " ", node);
+            if (!st.isFor) buffer.concat(indentation);
+            buffer.concat(node.kind + " ", node);
         }
         for (var i = 0; i < node.declarations.length; ++i) {
             var decl = node.declarations[i],
@@ -893,29 +720,19 @@ pass2 = walk.make({
 
             if (i)
                 if (generate) {
-                    if (format) {
-                        buffer.concat(",");
-                    } else {
-                        if (st.isFor)
-                            buffer.concat(", ");
-                        else {
-                            buffer.concat(",\n");
-                            buffer.concat(indentation);
-                            buffer.concat("    ");
-                        }
+                    if (st.isFor)
+                        buffer.concat(", ");
+                    else {
+                        buffer.concat(",\n");
+                        buffer.concat(indentation);
+                        buffer.concat("    ");
                     }
                 }
 
             c(decl.id, st, "Pattern");
             if (decl.init) {
                 if (generate) {
-                    if (format) {
-                        buffer.concatFormat(format.beforeEqual);
-                        buffer.concat("=");
-                        buffer.concatFormat(format.afterEqual);
-                    } else {
-                        buffer.concat(" = ");
-                    }
+                    buffer.concat(" = ");
                 }
                 c(decl.init, st, "Expression");
             }
@@ -938,14 +755,14 @@ pass2 = walk.make({
                 }
             }
         }
-        if (generate && !format && !st.isFor) buffer.concat(";\n", node); // Don't add ';' if this is a for statement but do it if this is a statement
+        if (generate && !st.isFor) buffer.concat(";\n", node); // Don't add ';' if this is a for statement but do it if this is a statement
     },
     ThisExpression: function (node, st, c) {
         var compiler = st.compiler;
 
         if (compiler.generate) compiler.jsBuffer.concat("this", node);
     },
-    ArrayExpression: function (node, st, c, format) {
+    ArrayExpression: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer;
@@ -959,18 +776,13 @@ pass2 = walk.make({
             var elt = node.elements[i];
 
             if (generate && i !== 0)
-                if (format) {
-                    buffer.concatFormat(format.beforeComma);
-                    buffer.concat(",");
-                    buffer.concatFormat(format.afterComma);
-                } else
-                    buffer.concat(", ");
+                buffer.concat(", ");
 
             if (elt) c(elt, st, "Expression");
         }
         if (generate) buffer.concat("]");
     },
-    ObjectExpression: function (node, st, c, format) {
+    ObjectExpression: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             properties = node.properties,
@@ -979,13 +791,7 @@ pass2 = walk.make({
         let isFirst = true
         for (const prop of properties) {
             if (!isFirst) {
-                if (format) {
-                    buffer.concatFormat(format.beforeComma);
-                    buffer.concat(",");
-                    buffer.concatFormat(format.afterComma);
-                } else {
-                    buffer.concat(", ");
-                }
+                buffer.concat(", ");
             } else {
                 isFirst = false
             }
@@ -1010,13 +816,7 @@ pass2 = walk.make({
                         delete st.isPropertyKey;
                         if (prop.computed) buffer.concat("]")
                         if (!prop.shorthand) {
-                            if (format) {
-                                buffer.concatFormat(format.beforeColon);
-                                buffer.concat(":");
-                                buffer.concatFormat(format.afterColon);
-                            } else {
-                                buffer.concat(": ");
-                            }
+                            buffer.concat(": ");
                         }
                     } else if (prop.key.raw && prop.key.raw.charAt(0) === "@") {
                         buffer.concat(compiler.source.substring(compiler.lastPos, prop.key.start));
@@ -1053,7 +853,7 @@ pass2 = walk.make({
             c(node.argument, st)
         }
     },
-    SequenceExpression: function (node, st, c, format) {
+    SequenceExpression: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer;
@@ -1063,12 +863,7 @@ pass2 = walk.make({
         }
         for (var i = 0; i < node.expressions.length; ++i) {
             if (generate && i !== 0)
-                if (format) {
-                    buffer.concatFormat(format.beforeComma);
-                    buffer.concat(",");
-                    buffer.concatFormat(format.afterComma);
-                } else
-                    buffer.concat(", ");
+                buffer.concat(", ");
             c(node.expressions[i], st, "Expression");
         }
         if (generate) buffer.concat(")");
@@ -1132,7 +927,7 @@ pass2 = walk.make({
             if (generate) buffer.concat(node.operator);
         }
     },
-    BinaryExpression: function (node, st, c, format) {
+    BinaryExpression: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate;
         if (node.operator == "**" || node.left.type == "ArrowFunctionExpression") {
@@ -1142,13 +937,13 @@ pass2 = walk.make({
         }
         if (generate) {
             var buffer = compiler.jsBuffer;
-            buffer.concatFormat(format ? format.beforeOperator : " ");
+            buffer.concatFormat(" ");
             buffer.concat(node.operator, node);
-            buffer.concatFormat(format ? format.afterOperator : " ");
+            buffer.concatFormat(" ");
         }
         (generate && nodePrecedence(node, node.right, true) ? surroundExpression(c) : c)(node.right, st, "Expression");
     },
-    LogicalExpression: function (node, st, c, format) {
+    LogicalExpression: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate;
         if (node.operator == "??") {
@@ -1158,9 +953,9 @@ pass2 = walk.make({
         }
         if (generate) {
             var buffer = compiler.jsBuffer;
-            buffer.concatFormat(format ? format.beforeOperator : " ");
+            buffer.concatFormat(" ");
             buffer.concat(node.operator);
-            buffer.concatFormat(format ? format.afterOperator : " ");
+            buffer.concatFormat(" ");
         }
         if (node.operator == "??") {
             surroundExpression(c)(node.right, st, "Expression");
@@ -1168,13 +963,13 @@ pass2 = walk.make({
             (generate && nodePrecedence(node, node.right, true) ? surroundExpression(c) : c)(node.right, st, "Expression");
         }
     },
-    ParenthesizedExpression: function (node, st, c, format) {
+    ParenthesizedExpression: function (node, st, c) {
         const buffer = st.compiler.jsBuffer;
         buffer.concat("(")
         c(node.expression, st, "Expression");
         buffer.concat(")")
     },
-    AssignmentExpression: function (node, st, c, format) {
+    AssignmentExpression: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             saveAssignment = st.assignment,
@@ -1227,9 +1022,9 @@ pass2 = walk.make({
         }
         (generate && nodePrecedence(node, nodeLeft) ? surroundExpression(c) : c)(nodeLeft, st, "Expression");
         if (generate) {
-            buffer.concatFormat(format ? format.beforeOperator : " ");
+            buffer.concatFormat(" ");
             buffer.concat(node.operator);
-            buffer.concatFormat(format ? format.afterOperator : " ");
+            buffer.concatFormat(" ");
         }
         st.assignment = saveAssignment;
         (generate && nodePrecedence(node, node.right, true) ? surroundExpression(c) : c)(node.right, st, "Expression");
@@ -1282,33 +1077,21 @@ pass2 = walk.make({
         if (node.tag.type === "ChainExpression") buffer.concat(")");
         c(node.quasi, st, "Expression");
     },
-    ConditionalExpression: function (node, st, c, format) {
+    ConditionalExpression: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer;
         (generate && nodePrecedence(node, node.test) ? surroundExpression(c) : c)(node.test, st, "Expression");
         if (generate) {
             buffer = compiler.jsBuffer;
-            if (format) {
-                buffer.concatFormat(format.beforeOperator);
-                buffer.concat("?");
-                buffer.concatFormat(format.afterOperator);
-            } else {
-                buffer.concat(" ? ");
-            }
+            buffer.concat(" ? ");
         }
         c(node.consequent, st, "Expression");
         if (generate)
-            if (format) {
-                buffer.concatFormat(format.beforeOperator);
-                buffer.concat(":");
-                buffer.concatFormat(format.afterOperator);
-            } else {
-                buffer.concat(" : ");
-            }
+            buffer.concat(" : ");
         c(node.alternate, st, "Expression");
     },
-    NewExpression: function (node, st, c, format) {
+    NewExpression: function (node, st, c) {
         var compiler = st.compiler,
             nodeArguments = node.arguments,
             generate = compiler.generate,
@@ -1322,13 +1105,13 @@ pass2 = walk.make({
         if (nodeArguments) {
             for (var i = 0, size = nodeArguments.length; i < size; ++i) {
                 if (i && generate)
-                    buffer.concatFormat(format ? "," : ", ");
+                    buffer.concatFormat(", ");
                 c(nodeArguments[i], st, "Expression");
             }
         }
         if (generate) buffer.concat(")");
     },
-    CallExpression: function (node, st, c, format) {
+    CallExpression: function (node, st, c) {
         var compiler = st.compiler,
             nodeArguments = node.arguments,
             generate = compiler.generate,
@@ -1356,7 +1139,7 @@ pass2 = walk.make({
         if (nodeArguments) {
             for (var i = 0, size = nodeArguments.length; i < size; ++i) {
                 if (i && generate)
-                    buffer.concat(format ? "," : ", ");
+                    buffer.concat(", ");
                 c(nodeArguments[i], st, "Expression");
             }
         }
@@ -1396,7 +1179,7 @@ pass2 = walk.make({
             c(node.expression, st)
         }
     },
-    AwaitExpression: function (node, st, c, format) {
+    AwaitExpression: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer;
@@ -1405,13 +1188,13 @@ pass2 = walk.make({
             buffer.concat("await", node);
         }
         if (node.argument) {
-            if (generate) buffer.concatFormat(format ? format.beforeExpression : " ");
+            if (generate) buffer.concatFormat(" ");
             buffer.concat("(")
             c(node.argument, st, "Expression");
             buffer.concat(")")
         }
     },
-    ArrowFunctionExpression: function (node, st, c, format) {
+    ArrowFunctionExpression: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer = compiler.jsBuffer;
@@ -1423,7 +1206,7 @@ pass2 = walk.make({
                 if (isFirst) {
                     isFirst = false
                 } else {
-                    buffer.concat(format ? "," : ", ");
+                    buffer.concat(", ");
                 }
                 c(param, st, "Pattern")
             }
@@ -1526,7 +1309,7 @@ pass2 = walk.make({
         }
         if (generate) compiler.jsBuffer.concat(identifier, node, identifier === "self" ? "self" : null);
     },
-    YieldExpression: function (node, st, c, format) {
+    YieldExpression: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer;
@@ -1536,7 +1319,7 @@ pass2 = walk.make({
             if (node.delegate) buffer.concat("*")
         }
         if (node.argument) {
-            if (generate) buffer.concatFormat(format ? format.beforeExpression : " ");
+            if (generate) buffer.concatFormat(" ");
             c(node.argument, st, "Expression");
         }
     },
@@ -1597,7 +1380,7 @@ pass2 = walk.make({
             compiler.jsBuffer.concat("}");
         }
     },
-    PropertyDefinition: function (node, st, c, format) {
+    PropertyDefinition: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer = compiler.jsBuffer;
@@ -1615,7 +1398,7 @@ pass2 = walk.make({
             buffer.concat(";")
         }
     },
-    MethodDefinition: function (node, st, c, format) {
+    MethodDefinition: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer = compiler.jsBuffer;
@@ -1628,27 +1411,21 @@ pass2 = walk.make({
             if (node.value.generator) buffer.concat("*")
             if (node.computed) buffer.concat("[")
             c(node.key, st)
-            if (format) buffer.concatFormat(format.beforeLeftParenthesis);
             if (node.computed) buffer.concat("]")
             buffer.concat("(");
             for (var i = 0; i < node.value.params.length; ++i) {
                 if (i)
-                    buffer.concat(format ? "," : ", ");
+                    buffer.concat(", ");
                 c(node.value.params[i], st, "Pattern");
             }
-            if (format) {
-                buffer.concat(")");
-                buffer.concatFormat(format.afterRightParenthesis);
-            } else {
-                buffer.concat(")");
-            }
+            buffer.concat(")");
             indentation += indentStep
             c(node.value.body, st)
             indentation = indentation.substring(indentationSize);
 
         }
     },
-    PrivateIdentifier: function (node, st, c, format) {
+    PrivateIdentifier: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer = compiler.jsBuffer;
@@ -1657,7 +1434,7 @@ pass2 = walk.make({
             buffer.concat(node.name)
         }
     },
-    MetaProperty: function (node, st, c, format) {
+    MetaProperty: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer = compiler.jsBuffer;
@@ -1671,7 +1448,7 @@ pass2 = walk.make({
             }
         }
     },
-    Super: function (node, st, c, format) {
+    Super: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer = compiler.jsBuffer;
@@ -1680,7 +1457,7 @@ pass2 = walk.make({
             buffer.concat("super")
         }
     },
-    ExportNamedDeclaration: function (node, st, c, format) {
+    ExportNamedDeclaration: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer = compiler.jsBuffer;
@@ -1714,7 +1491,7 @@ pass2 = walk.make({
             buffer.concat("\n")
         }
     },
-    ExportSpecifier: function (node, st, c, format) {
+    ExportSpecifier: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer = compiler.jsBuffer;
@@ -1726,7 +1503,7 @@ pass2 = walk.make({
             }
         }
     },
-    ExportDefaultDeclaration: function (node, st, c, format) {
+    ExportDefaultDeclaration: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer = compiler.jsBuffer;
@@ -1737,7 +1514,7 @@ pass2 = walk.make({
         }
         delete st.isDefaultExport
     },
-    ExportAllDeclaration: function (node, st, c, format) {
+    ExportAllDeclaration: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer = compiler.jsBuffer;
@@ -1754,7 +1531,7 @@ pass2 = walk.make({
             buffer.concat("\n")
         }
     },
-    ImportDeclaration: function (node, st, c, format) {
+    ImportDeclaration: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer = compiler.jsBuffer;
@@ -1791,7 +1568,7 @@ pass2 = walk.make({
             buffer.concat("\n")
         }
     },
-    ImportExpression: function (node, st, c, format) {
+    ImportExpression: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             buffer = compiler.jsBuffer;
@@ -2026,7 +1803,7 @@ pass2 = walk.make({
         }
         if (!generate) compiler.lastPos = node.end;
     },
-    ClassDeclarationStatement: function (node, st, c, format) {
+    ClassDeclarationStatement: function (node, st, c) {
         var compiler = st.compiler,
             generate = compiler.generate,
             saveJSBuffer = compiler.jsBuffer,
@@ -2477,7 +2254,7 @@ pass2 = walk.make({
         // Skip the "@end"
         if (!generate) compiler.lastPos = node.end;
     },
-    IvarDeclaration: function (node, st, c, format) {
+    IvarDeclaration: function (node, st, c) {
         var compiler = st.compiler,
             buffer = compiler.jsBuffer;
 
