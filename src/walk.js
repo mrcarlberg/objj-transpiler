@@ -307,7 +307,7 @@ pass2 = walk.make({
                     var emptyStatement = alternate.type === "EmptyStatement";
                     buffer.concat(indentation);
                     // We don't want EmptyStatements to generate an extra parenthesis except when it is in a while, for, ...
-                    buffer.concat(alternateNotIf ? emptyStatement ? "else;\n" : "else\n" : "else ", node);
+                    buffer.concat(alternateNotIf ? emptyStatement ? "else" : "else\n" : "else ", node);
                 }
             }
             if (alternateNotIf)
@@ -629,7 +629,7 @@ pass2 = walk.make({
             }
         }
         c(node.test, st, "Expression");
-        if (generate) buffer.concatFormat(format ? ")" : ");\n");
+        if (generate) buffer.concatFormat(format ? ")" : ")\n");
     },
     ForStatement: function (node, st, c, format) {
         var compiler = st.compiler,
@@ -857,7 +857,7 @@ pass2 = walk.make({
             generate = compiler.generate,
             buffer = compiler.jsBuffer;
         if (generate) {
-            buffer.concat(";")
+            buffer.concat(";\n")
         }
     },
     VariableDeclaration: function (node, st, c, format) {
@@ -1612,6 +1612,7 @@ pass2 = walk.make({
                 buffer.concat(" = ")
                 c(node.value, st)
             }
+            buffer.concat(";")
         }
     },
     MethodDefinition: function (node, st, c, format) {
