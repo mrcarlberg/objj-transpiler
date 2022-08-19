@@ -2049,8 +2049,9 @@ pass2 = walk.make({
             if (!superClassDef && !generateObjJ) // Don't throw error for this when generating Objective-J code
             {
                 var errorMessage = "Can't find superclass " + node.superclassname.name;
-                if (ObjJAcornCompiler.importStack) for (var i = ObjJAcornCompiler.importStack.length; --i >= 0;)
-                    errorMessage += "\n" + Array((ObjJAcornCompiler.importStack.length - i) * 2 + 1).join(" ") + "Imported by: " + ObjJAcornCompiler.importStack[i];
+                let stack = compiler.constructor.importStack
+                if (stack) for (var i = compiler.constructor.importStack.length; --i >= 0;)
+                    errorMessage += "\n" + Array((stack.length - i) * 2 + 1).join(" ") + "Imported by: " + stack[i];
                 throw compiler.error_message(errorMessage, node.superclassname);
             }
 
@@ -2269,7 +2270,7 @@ pass2 = walk.make({
             var generatedCode = imBuffer.toString();
 
             if (compiler.createSourceMap) {
-                compiler.imBuffer.concat(sourceMap.SourceNode.fromStringWithSourceMap(generatedCode.code, sourceMap.SourceMapConsumer(generatedCode.map.toString())));
+                compiler.imBuffer.concat(SourceNode.fromStringWithSourceMap(generatedCode.code, SourceMapConsumer(generatedCode.map.toString())));
             } else {
                 compiler.imBuffer.concat(generatedCode);
             }
