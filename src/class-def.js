@@ -4,136 +4,134 @@
 // classDef = {"className": aClassName, "superClass": superClass , "ivars": myIvars, "instanceMethods": instanceMethodDefs, "classMethods": classMethodDefs, "protocols": myProtocols};
 
 export class ClassDef {
+  constructor(isImplementationDeclaration, name, superClass, ivars, instanceMethods, classMethods, protocols) {
+    this.name = name
+    if (superClass)
+      this.superClass = superClass
+    if (ivars)
+      this.ivars = ivars
+    if (isImplementationDeclaration) {
+      this.instanceMethods = instanceMethods || Object.create(null)
+      this.classMethods = classMethods || Object.create(null)
+    }
+    if (protocols)
+      this.protocols = protocols
+  }
 
-    constructor(isImplementationDeclaration, name, superClass, ivars, instanceMethods, classMethods, protocols) {
-        this.name = name;
-        if (superClass)
-            this.superClass = superClass;
-        if (ivars)
-            this.ivars = ivars;
-        if (isImplementationDeclaration) {
-            this.instanceMethods = instanceMethods || Object.create(null);
-            this.classMethods = classMethods || Object.create(null);
-        }
-        if (protocols)
-            this.protocols = protocols;
+  addInstanceMethod(methodDef) {
+    this.instanceMethods[methodDef.name] = methodDef
+  }
+
+  addClassMethod(methodDef) {
+    this.classMethods[methodDef.name] = methodDef
+  }
+
+  listOfNotImplementedMethodsForProtocols(protocolDefs) {
+    let resultList = [],
+        instanceMethods = this.getInstanceMethods(),
+        classMethods = this.getClassMethods()
+
+    for (let i = 0, size = protocolDefs.length; i < size; i++) {
+      let protocolDef = protocolDefs[i],
+          protocolInstanceMethods = protocolDef.requiredInstanceMethods,
+          protocolClassMethods = protocolDef.requiredClassMethods,
+          inheritFromProtocols = protocolDef.protocols
+
+      if (protocolInstanceMethods) for (var methodName in protocolInstanceMethods) {
+        var methodDef = protocolInstanceMethods[methodName]
+
+        if (!instanceMethods[methodName])
+          resultList.push({methodDef, protocolDef})
+      }
+
+      if (protocolClassMethods) for (var methodName in protocolClassMethods) {
+        var methodDef = protocolClassMethods[methodName]
+
+        if (!classMethods[methodName])
+          resultList.push({methodDef, protocolDef})
+      }
+
+      if (inheritFromProtocols)
+        resultList = resultList.concat(this.listOfNotImplementedMethodsForProtocols(inheritFromProtocols))
     }
 
-    addInstanceMethod(methodDef) {
-        this.instanceMethods[methodDef.name] = methodDef;
+    return resultList
+  }
+
+  getInstanceMethod(name) {
+    let instanceMethods = this.instanceMethods
+
+    if (instanceMethods) {
+      let method = instanceMethods[name]
+
+      if (method)
+        return method
     }
 
-    addClassMethod(methodDef) {
-        this.classMethods[methodDef.name] = methodDef;
+    let superClass = this.superClass
+
+    if (superClass)
+      return superClass.getInstanceMethod(name)
+
+    return null
+  }
+
+  getClassMethod(name) {
+    let classMethods = this.classMethods
+    if (classMethods) {
+      let method = classMethods[name]
+
+      if (method)
+        return method
     }
 
-    listOfNotImplementedMethodsForProtocols(protocolDefs) {
-        var resultList = [],
-            instanceMethods = this.getInstanceMethods(),
-            classMethods = this.getClassMethods();
+    let superClass = this.superClass
 
-        for (var i = 0, size = protocolDefs.length; i < size; i++) {
-            var protocolDef = protocolDefs[i],
-                protocolInstanceMethods = protocolDef.requiredInstanceMethods,
-                protocolClassMethods = protocolDef.requiredClassMethods,
-                inheritFromProtocols = protocolDef.protocols;
+    if (superClass)
+      return superClass.getClassMethod(name)
 
-            if (protocolInstanceMethods) for (var methodName in protocolInstanceMethods) {
-                var methodDef = protocolInstanceMethods[methodName];
+    return null
+  }
 
-                if (!instanceMethods[methodName])
-                    resultList.push({ "methodDef": methodDef, "protocolDef": protocolDef });
-            }
+  // Return a new Array with all instance methods
+  getInstanceMethods() {
+    let instanceMethods = this.instanceMethods
+    if (instanceMethods) {
+      let superClass = this.superClass,
+          returnObject = Object.create(null)
+      if (superClass) {
+        let superClassMethods = superClass.getInstanceMethods()
+        for (var methodName in superClassMethods)
+          returnObject[methodName] = superClassMethods[methodName]
+      }
 
-            if (protocolClassMethods) for (var methodName in protocolClassMethods) {
-                var methodDef = protocolClassMethods[methodName];
+      for (var methodName in instanceMethods)
+        returnObject[methodName] = instanceMethods[methodName]
 
-                if (!classMethods[methodName])
-                    resultList.push({ "methodDef": methodDef, "protocolDef": protocolDef });
-            }
-
-            if (inheritFromProtocols)
-                resultList = resultList.concat(this.listOfNotImplementedMethodsForProtocols(inheritFromProtocols));
-        }
-
-        return resultList;
+      return returnObject
     }
 
-    getInstanceMethod(name) {
-        var instanceMethods = this.instanceMethods;
+    return []
+  }
 
-        if (instanceMethods) {
-            var method = instanceMethods[name];
+  // Return a new Array with all class methods
+  getClassMethods() {
+    let classMethods = this.classMethods
+    if (classMethods) {
+      let superClass = this.superClass,
+          returnObject = Object.create(null)
+      if (superClass) {
+        let superClassMethods = superClass.getClassMethods()
+        for (var methodName in superClassMethods)
+          returnObject[methodName] = superClassMethods[methodName]
+      }
 
-            if (method)
-                return method;
-        }
+      for (var methodName in classMethods)
+        returnObject[methodName] = classMethods[methodName]
 
-        var superClass = this.superClass;
-
-        if (superClass)
-            return superClass.getInstanceMethod(name);
-
-        return null;
+      return returnObject
     }
 
-    getClassMethod(name) {
-        var classMethods = this.classMethods;
-        if (classMethods) {
-            var method = classMethods[name];
-
-            if (method)
-                return method;
-        }
-
-        var superClass = this.superClass;
-
-        if (superClass)
-            return superClass.getClassMethod(name);
-
-        return null;
-    }
-
-    // Return a new Array with all instance methods
-    getInstanceMethods() {
-        var instanceMethods = this.instanceMethods;
-        if (instanceMethods) {
-            var superClass = this.superClass,
-                returnObject = Object.create(null);
-            if (superClass) {
-                var superClassMethods = superClass.getInstanceMethods();
-                for (var methodName in superClassMethods)
-                    returnObject[methodName] = superClassMethods[methodName];
-            }
-
-            for (var methodName in instanceMethods)
-                returnObject[methodName] = instanceMethods[methodName];
-
-            return returnObject;
-        }
-
-        return [];
-    }
-
-    // Return a new Array with all class methods
-    getClassMethods() {
-        var classMethods = this.classMethods;
-        if (classMethods) {
-            var superClass = this.superClass,
-                returnObject = Object.create(null);
-            if (superClass) {
-                var superClassMethods = superClass.getClassMethods();
-                for (var methodName in superClassMethods)
-                    returnObject[methodName] = superClassMethods[methodName];
-            }
-
-            for (var methodName in classMethods)
-                returnObject[methodName] = classMethods[methodName];
-
-            return returnObject;
-        }
-
-        return [];
-    }
-
+    return []
+  }
 }
