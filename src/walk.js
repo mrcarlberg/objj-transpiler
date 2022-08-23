@@ -168,7 +168,8 @@ pass1 = walk.make({
   ArrayLiteral: ignore,
   Reference: ignore,
   DictionaryLiteral: ignore,
-  Dereference: ignore
+  Dereference: ignore,
+  SelectorLiteralExpression: ignore
 })
 
 // Returns true if subNode has higher precedence the the root node.
