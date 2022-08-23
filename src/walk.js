@@ -1,7 +1,7 @@
 import walk from "acorn-walk"
 import {SourceNode, SourceMapConsumer} from "source-map"
 
-import {Scope, FunctionScope} from "./scope"
+import {Scope, FunctionScope, BlockScope} from "./scope"
 import {TypeDef, MethodDef} from "./definition"
 import {ClassDef} from "./class-def"
 import {ProtocolDef} from "./protocol"
@@ -218,16 +218,17 @@ pass2 = walk.make({
     else
       buffer.concat(st.compiler.indentation.substring(st.compiler.indentationSize))
     buffer.concat("{\n", node)
-
+    let inner = endOfScopeBody ? st : new BlockScope(st)
     for (let i = 0; i < node.body.length; ++i) {
       if (node.body[i].type === "BlockStatement") {
         st.compiler.indentation += st.compiler.indentStep
-        c(node.body[i], st, "Statement")
+        c(node.body[i], inner, "Statement")
         st.compiler.indentation = st.compiler.indentation.substring(st.compiler.indentationSize)
       } else {
-        c(node.body[i], st, "Statement")
+        c(node.body[i], inner, "Statement")
       }
     }
+    !endOfScopeBody && inner.variablesNotReadWarnings()
     let maxReceiverLevel = st.maxReceiverLevel
     if (endOfScopeBody && maxReceiverLevel) {
       buffer.concat(st.compiler.indentation)
@@ -877,8 +878,9 @@ pass2 = walk.make({
     buffer.concatFormat(" ")
     st.assignment = saveAssignment;
     (nodePrecedence(node, node.right, true) ? surroundExpression(c) : c)(node.right, st, "Expression")
-    if (st.isRootScope() && nodeLeft.type === "Identifier" && !st.getLvar(nodeLeft.name))
-      st.vars[nodeLeft.name] = {type: "global", node: nodeLeft}
+    let varScope = st.getVarScope()
+    if (varScope.isRootScope() && nodeLeft.type === "Identifier" && !varScope.getLvar(nodeLeft.name))
+      varScope.vars[nodeLeft.name] = {type: "global", node: nodeLeft}
   },
   AssignmentPattern: function(node, st, c) {
     let compiler = st.compiler,

@@ -133,7 +133,7 @@ export class Scope {
     if (compiler.options.warnings.includes(warningUnusedButSetVariable) && this.prev && this.vars) for (let key in this.vars) {
       let lvar = this.vars[key]
 
-      if (!lvar.isRead && lvar.type === "var") {
+      if (!lvar.isRead && (lvar.type === "var" || lvar.type === "let" || lvar.type === "const")) {
         // print("Variable '" + key + "' is never read: " + lvar.type + ", line: " + lvar.node.start);
         compiler.addWarning(createMessage("Variable '" + key + "' is never read", lvar.node, compiler.source))
       }
