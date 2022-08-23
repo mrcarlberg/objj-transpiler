@@ -209,7 +209,10 @@ pass2 = walk.make({
         endOfScopeBody = st.endOfScopeBody,
         buffer
 
-    if (endOfScopeBody)
+    let isDecl = st.isDecl
+    if (isDecl != null) {
+      delete st.isDecl
+    }
       delete st.endOfScopeBody
 
     let skipIndentation = st.skipIndentation
@@ -248,8 +251,9 @@ pass2 = walk.make({
     buffer.concat(st.compiler.indentation.substring(st.compiler.indentationSize))
     buffer.concat("}", node)
     if (st.isDefaultExport) buffer.concat(";")
-    if (!skipIndentation && st.isDecl !== false)
+    if (!skipIndentation && isDecl !== false) {
       buffer.concat("\n")
+    }
     st.indentBlockLevel--
   },
   ExpressionStatement: function(node, st, c) {
