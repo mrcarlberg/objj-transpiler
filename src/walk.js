@@ -1361,69 +1361,70 @@ pass2 = walk.make({
     let compiler = st.compiler,
         buffer = compiler.jsBuffer,
         generateObjJ = compiler.options.generateObjJ,
-        elementLength = node.elements.length
+        elementLength = node.elements.length,
+        varScope = st.getVarScope()
 
-    if (!st.receiverLevel) st.receiverLevel = 0
+    if (!varScope.receiverLevel) varScope.receiverLevel = 0
     if (generateObjJ) {
       buffer.concat("@[")
     } else if (!elementLength) {
       if (compiler.options.inlineMsgSendFunctions) {
         buffer.concat("(___r", node)
-        buffer.concat(++st.receiverLevel + "")
+        buffer.concat(++varScope.receiverLevel + "")
         buffer.concat(" = (CPArray.isa.method_msgSend[\"alloc\"] || _objj_forward)(CPArray, \"alloc\"), ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(" == null ? ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(" : (___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(".isa.method_msgSend[\"init\"] || _objj_forward)(___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(", \"init\"))")
       } else {
         buffer.concat("(___r")
-        buffer.concat(++st.receiverLevel + "")
+        buffer.concat(++varScope.receiverLevel + "")
         buffer.concat(" = CPArray.isa.objj_msgSend0(CPArray, \"alloc\"), ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(" == null ? ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(" : ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(".isa.objj_msgSend0(___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(", \"init\"))")
       }
 
-      if (!(st.maxReceiverLevel >= st.receiverLevel))
-        st.maxReceiverLevel = st.receiverLevel
+      if (!(varScope.maxReceiverLevel >= varScope.receiverLevel))
+        varScope.maxReceiverLevel = varScope.receiverLevel
     } else {
       if (compiler.options.inlineMsgSendFunctions) {
         buffer.concat("(___r", node)
-        buffer.concat(++st.receiverLevel + "")
+        buffer.concat(++varScope.receiverLevel + "")
         buffer.concat(" = (CPArray.isa.method_msgSend[\"alloc\"] || _objj_forward)(CPArray, \"alloc\"), ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(" == null ? ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(" : (___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(".isa.method_msgSend[\"initWithObjects:count:\"] || _objj_forward)(___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(", \"initWithObjects:count:\", [")
       } else {
         buffer.concat("(___r", node)
-        buffer.concat(++st.receiverLevel + "")
+        buffer.concat(++varScope.receiverLevel + "")
         buffer.concat(" = CPArray.isa.objj_msgSend0(CPArray, \"alloc\"), ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(" == null ? ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(" : ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(".isa.objj_msgSend2(___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(", \"initWithObjects:count:\", [")
       }
 
-      if (!(st.maxReceiverLevel >= st.receiverLevel))
-        st.maxReceiverLevel = st.receiverLevel
+      if (!(varScope.maxReceiverLevel >= varScope.receiverLevel))
+        varScope.maxReceiverLevel = varScope.receiverLevel
     }
     if (elementLength) {
       for (let i = 0; i < elementLength; i++) {
@@ -1440,15 +1441,16 @@ pass2 = walk.make({
     if (generateObjJ)
       buffer.concat("]")
     else
-      st.receiverLevel--
+      varScope.receiverLevel--
   },
   DictionaryLiteral: function(node, st, c) {
     let compiler = st.compiler,
         buffer = compiler.jsBuffer,
         generateObjJ = compiler.options.generateObjJ,
-        keyLength = node.keys.length
+        keyLength = node.keys.length,
+        varScope = st.getVarScope()
 
-    if (!st.receiverLevel) st.receiverLevel = 0
+    if (!varScope.receiverLevel) varScope.receiverLevel = 0
     if (generateObjJ) {
       buffer.concat("@{")
       for (let i = 0; i < keyLength; i++) {
@@ -1461,61 +1463,61 @@ pass2 = walk.make({
     } else if (!keyLength) {
       if (compiler.options.inlineMsgSendFunctions) {
         buffer.concat("(___r", node)
-        buffer.concat(++st.receiverLevel + "")
+        buffer.concat(++varScope.receiverLevel + "")
         buffer.concat(" = (CPDictionary.isa.method_msgSend[\"alloc\"] || _objj_forward)(CPDictionary, \"alloc\"), ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(" == null ? ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(" : (___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(".isa.method_msgSend[\"init\"] || _objj_forward)(___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(", \"init\"))")
       } else {
         buffer.concat("(___r")
-        buffer.concat(++st.receiverLevel + "")
+        buffer.concat(++varScope.receiverLevel + "")
         buffer.concat(" = CPDictionary.isa.objj_msgSend0(CPDictionary, \"alloc\"), ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(" == null ? ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(" : ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(".isa.objj_msgSend0(___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(", \"init\"))")
       }
 
-      if (!(st.maxReceiverLevel >= st.receiverLevel))
-        st.maxReceiverLevel = st.receiverLevel
+      if (!(varScope.maxReceiverLevel >= varScope.receiverLevel))
+        varScope.maxReceiverLevel = varScope.receiverLevel
     } else {
       if (compiler.options.inlineMsgSendFunctions) {
         buffer.concat("(___r", node)
-        buffer.concat(++st.receiverLevel + "")
+        buffer.concat(++varScope.receiverLevel + "")
         buffer.concat(" = (CPDictionary.isa.method_msgSend[\"alloc\"] || _objj_forward)(CPDictionary, \"alloc\"), ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(" == null ? ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(" : (___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(".isa.method_msgSend[\"initWithObjects:forKeys:\"] || _objj_forward)(___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(", \"initWithObjects:forKeys:\", [")
       } else {
         buffer.concat("(___r", node)
-        buffer.concat(++st.receiverLevel + "")
+        buffer.concat(++varScope.receiverLevel + "")
         buffer.concat(" = CPDictionary.isa.objj_msgSend0(CPDictionary, \"alloc\"), ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(" == null ? ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(" : ___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(".isa.objj_msgSend2(___r")
-        buffer.concat(st.receiverLevel + "")
+        buffer.concat(varScope.receiverLevel + "")
         buffer.concat(", \"initWithObjects:forKeys:\", [")
       }
 
-      if (!(st.maxReceiverLevel >= st.receiverLevel))
-        st.maxReceiverLevel = st.receiverLevel
+      if (!(varScope.maxReceiverLevel >= varScope.receiverLevel))
+        varScope.maxReceiverLevel = varScope.receiverLevel
 
       for (let i = 0; i < keyLength; i++) {
         let value = node.values[i]
@@ -1537,7 +1539,7 @@ pass2 = walk.make({
     }
 
     if (!generateObjJ)
-      st.receiverLevel--
+      varScope.receiverLevel--
   },
   ImportStatement: function(node, st, c) {
     let compiler = st.compiler,
@@ -2225,7 +2227,8 @@ pass2 = walk.make({
         selector = firstSelector ? firstSelector.name : "", // There is always at least one selector
         parameters = node.parameters,
         options = compiler.options,
-        generateObjJ = options.generateObjJ
+        generateObjJ = options.generateObjJ,
+        varScope = st.getVarScope()
 
     // Put together the selector. Maybe this should be done in the parser...
     for (var i = 0; i < argumentsLength; i++) {
@@ -2295,20 +2298,20 @@ pass2 = walk.make({
           c(nodeObject, st, "Expression")
         } else {
           receiverIsNotSelf = true
-          if (!st.receiverLevel) st.receiverLevel = 0
-          buffer.concat("((___r" + ++st.receiverLevel, node)
+          if (!varScope.receiverLevel) varScope.receiverLevel = 0
+          buffer.concat("((___r" + ++varScope.receiverLevel, node)
           buffer.concat(" = ", node)
           c(nodeObject, st, "Expression")
           buffer.concat(")", node)
-          buffer.concat(", ___r" + st.receiverLevel, node)
+          buffer.concat(", ___r" + varScope.receiverLevel, node)
           buffer.concat(" == null ? ", node)
-          buffer.concat("___r" + st.receiverLevel, node)
+          buffer.concat("___r" + varScope.receiverLevel, node)
           buffer.concat(" : ", node)
           if (inlineMsgSend)
             buffer.concat("(", node)
-          buffer.concat("___r" + st.receiverLevel, node)
-          if (!(st.maxReceiverLevel >= st.receiverLevel))
-            st.maxReceiverLevel = st.receiverLevel
+          buffer.concat("___r" + varScope.receiverLevel, node)
+          if (!(varScope.maxReceiverLevel >= varScope.receiverLevel))
+            varScope.maxReceiverLevel = varScope.receiverLevel
         }
         if (inlineMsgSend) {
           buffer.concat(".isa.method_msgSend[\"", node)
@@ -2356,7 +2359,7 @@ pass2 = walk.make({
           buffer.concat("(", node)
           c(nodeObject, st, "Expression")
         } else {
-          buffer.concat("(___r" + st.receiverLevel, node)
+          buffer.concat("(___r" + varScope.receiverLevel, node)
         }
 
         // Only do this if source map is enabled and we have an identifier
@@ -2405,7 +2408,7 @@ pass2 = walk.make({
         if (receiverIsNotSelf)
           buffer.concat(")", node)
         if (!receiverIsIdentifier)
-          st.receiverLevel--
+          varScope.receiverLevel--
       }
 
       buffer.concat(")", node)
