@@ -9,6 +9,7 @@ import {StringBuffer} from "./buffer"
 import {GlobalVariableMaybeWarning, createMessage, warningUnknownClassOrGlobal, warningCreateGlobalInsideFunctionOrMethod, warningShadowIvar, warningUnknownIvarType} from "./warning"
 import {wordsRegexp} from "./util"
 import {setupOptions} from "./options"
+import {getLineInfo} from "objj-parser"
 
 export let pass1, pass2
 
@@ -651,7 +652,8 @@ pass2 = walk.make({
       if (st.addedSelfToIvars) {
         let addedSelfToIvar = st.addedSelfToIvars[identifier]
         if (addedSelfToIvar) {
-          for (var i = 0, size = addedSelfToIvar.length; i < size; i++) {
+          let size = addedSelfToIvar.length
+          for (let i = 0; i < size; i++) {
             let dict = addedSelfToIvar[i]
             buffer.removeAtIndex(dict.index)
             if (compiler.options.warnings.includes(warningShadowIvar)) compiler.addWarning(createMessage("Local declaration of '" + identifier + "' hides instance variable", dict.node, compiler.source))
@@ -1073,7 +1075,6 @@ pass2 = walk.make({
         if (lvar) {
           if (compiler.options.warnings.includes(warningShadowIvar)) compiler.addWarning(createMessage("Local declaration of '" + identifier + "' hides instance variable", node, compiler.source))
         } else {
-          let nodeStart = node.start;
           // Save the index in where the "self." string is stored and the node.
           // These will be used if we find a variable declaration that is hoisting this identifier.
           ((st.addedSelfToIvars || (st.addedSelfToIvars = Object.create(null)))[identifier] || (st.addedSelfToIvars[identifier] = [])).push({node, index: buffer.length()})
@@ -1118,10 +1119,10 @@ pass2 = walk.make({
         // It can also be declared later on in a higher scope.
         // We create a list of possible variables that will be used if it is declared.
         // We collect how many times the variable is read and a reference to a possible variable in a
-        var possibleHoistedVariable = (lvarScope.possibleHoistedVariables || (lvarScope.possibleHoistedVariables = Object.create(null)))[identifier]
+        let possibleHoistedVariable = (lvarScope.possibleHoistedVariables || (lvarScope.possibleHoistedVariables = Object.create(null)))[identifier]
 
         if (possibleHoistedVariable == null) {
-          var possibleHoistedVariable = {isRead: 1}
+          possibleHoistedVariable = {isRead: 1}
           lvarScope.possibleHoistedVariables[identifier] = possibleHoistedVariable
         } else {
           possibleHoistedVariable.isRead++
@@ -1566,8 +1567,7 @@ pass2 = walk.make({
         // It has a interface declaration already
         throw compiler.error_message("Duplicate interface definition for class " + className, node.classname)
       let superClassDef = compiler.getClassDef(node.superclassname.name)
-      if (!superClassDef) // Don't throw error for this when generating Objective-J code
-      {
+      if (!superClassDef) { // Don't throw error for this when generating Objective-J code
         let errorMessage = "Can't find superclass " + node.superclassname.name
         let stack = compiler.constructor.importStack
         if (stack) for (let i = compiler.constructor.importStack.length; --i >= 0;)
@@ -1592,7 +1592,7 @@ pass2 = walk.make({
       saveJSBuffer.concat("{var the_class = objj_allocateClassPair(Nil, \"" + className + "\"),\nmeta_class = the_class.isa;", node)
     }
 
-    if (protocols) for (var i = 0, size = protocols.length; i < size; i++) {
+    if (protocols) for (let i = 0, size = protocols.length; i < size; i++) {
       saveJSBuffer.concat("\nvar aProtocol = objj_getProtocol(\"" + protocols[i].name + "\");", protocols[i])
       saveJSBuffer.concat("\nif (!aProtocol) throw new SyntaxError(\"*** Could not find definition for protocol \\\"" + protocols[i].name + "\\\"\");")
       saveJSBuffer.concat("\nclass_addProtocol(the_class, aProtocol);")
@@ -1612,8 +1612,8 @@ pass2 = walk.make({
 
     // Then we add all ivars
     if (node.ivardeclarations) {
-      for (var i = 0; i < node.ivardeclarations.length; ++i) {
-        var ivarDecl = node.ivardeclarations[i],
+      for (let i = 0; i < node.ivardeclarations.length; ++i) {
+        let ivarDecl = node.ivardeclarations[i],
             ivarType = ivarDecl.ivartype ? ivarDecl.ivartype.name : null,
             ivarTypeIsClass = ivarDecl.ivartype ? ivarDecl.ivartype.typeisclass : false,
             ivarIdentifier = ivarDecl.id,
@@ -1661,16 +1661,16 @@ pass2 = walk.make({
         if (accessors) {
           // Declare the accessor methods in the class definition.
           // TODO: This next couple of lines for getting getterName and setterName are duplicated from below. Create functions for this.
-          var property = (accessors.property && accessors.property.name) || ivarName,
+          let property = (accessors.property && accessors.property.name) || ivarName,
               getterName = (accessors.getter && accessors.getter.name) || property
 
           classDef.addInstanceMethod(new MethodDef(getterName, [ivarType]))
 
           if (!accessors.readonly) {
-            var setterName = accessors.setter ? accessors.setter.name : null
+            let setterName = accessors.setter ? accessors.setter.name : null
 
             if (!setterName) {
-              var start = property.charAt(0) === "_" ? 1 : 0
+              let start = property.charAt(0) === "_" ? 1 : 0
 
               setterName = (start ? "_" : "") + "set" + property.substr(start, 1).toUpperCase() + property.substring(start + 1) + ":"
             }
@@ -1693,8 +1693,8 @@ pass2 = walk.make({
       getterSetterBuffer.concat(compiler.source.substring(node.start, node.endOfIvars).replace(/<.*>/g, ""))
       getterSetterBuffer.concat("\n")
 
-      for (var i = 0; i < node.ivardeclarations.length; ++i) {
-        var ivarDecl = node.ivardeclarations[i],
+      for (let i = 0; i < node.ivardeclarations.length; ++i) {
+        let ivarDecl = node.ivardeclarations[i],
             ivarType = ivarDecl.ivartype ? ivarDecl.ivartype.name : null,
             ivarName = ivarDecl.id.name,
             accessors = ivarDecl.accessors
@@ -1702,7 +1702,7 @@ pass2 = walk.make({
         if (!accessors)
           continue
 
-        var property = (accessors.property && accessors.property.name) || ivarName,
+        let property = (accessors.property && accessors.property.name) || ivarName,
             getterName = (accessors.getter && accessors.getter.name) || property,
             getterCode = "- (" + (ivarType || "id") + ")" + getterName + "\n{\n    return " + ivarName + ";\n}\n"
 
@@ -1711,10 +1711,10 @@ pass2 = walk.make({
         if (accessors.readonly)
           continue
 
-        var setterName = accessors.setter ? accessors.setter.name : null
+        let setterName = accessors.setter ? accessors.setter.name : null
 
         if (!setterName) {
-          var start = property.charAt(0) === "_" ? 1 : 0
+          let start = property.charAt(0) === "_" ? 1 : 0
 
           setterName = (start ? "_" : "") + "set" + property.substr(start, 1).toUpperCase() + property.substring(start + 1) + ":"
         }
@@ -1756,8 +1756,8 @@ pass2 = walk.make({
     }
 
     // We will store the ivars into the classDef first after accessors are done so we don't get a duplicate ivars error when generating accessors
-    for (var ivarSize = classDefIvars.length, i = 0; i < ivarSize; i++) {
-      var ivar = classDefIvars[i],
+    for (let ivarSize = classDefIvars.length, i = 0; i < ivarSize; i++) {
+      let ivar = classDefIvars[i],
           ivarName = ivar.name
 
       // Store the ivar into the classDef
@@ -1772,7 +1772,7 @@ pass2 = walk.make({
 
     if (bodyLength > 0) {
       // And last add methods and other statements
-      for (var i = 0; i < bodyLength; ++i) {
+      for (let i = 0; i < bodyLength; ++i) {
         let body = bodies[i]
         c(body, classScope, "Statement")
       }
@@ -1808,8 +1808,8 @@ pass2 = walk.make({
       // Lookup the protocolDefs for the protocols
       let protocolDefs = []
 
-      for (var i = 0, size = protocols.length; i < size; i++) {
-        var protocol = protocols[i],
+      for (let i = 0, size = protocols.length; i < size; i++) {
+        let protocol = protocols[i],
             protocolDef = compiler.getProtocolDef(protocol.name)
 
         if (!protocolDef)
@@ -1822,7 +1822,7 @@ pass2 = walk.make({
 
       if (unimplementedMethods && unimplementedMethods.length > 0)
         for (let j = 0, unimpSize = unimplementedMethods.length; j < unimpSize; j++) {
-          var unimplementedMethod = unimplementedMethods[j],
+          let unimplementedMethod = unimplementedMethods[j],
               methodDef = unimplementedMethod.methodDef,
               protocolDef = unimplementedMethod.protocolDef
 
@@ -1848,7 +1848,7 @@ pass2 = walk.make({
     buffer.concat("{var the_protocol = objj_allocateProtocol(\"" + protocolName + "\");", node)
 
     if (protocols) {
-      for (var i = 0, size = protocols.length; i < size; i++) {
+      for (let i = 0, size = protocols.length; i < size; i++) {
         let protocol = protocols[i],
             inheritFromProtocolName = protocol.name,
             inheritProtocolDef = compiler.getProtocolDef(inheritFromProtocolName)
@@ -1875,7 +1875,7 @@ pass2 = walk.make({
 
       if (requiredLength > 0) {
         // We only add the required methods
-        for (var i = 0; i < requiredLength; ++i) {
+        for (let i = 0; i < requiredLength; ++i) {
           let required = someRequired[i]
           c(required, protocolScope, "Statement")
         }
@@ -1928,7 +1928,7 @@ pass2 = walk.make({
         returnTypeProtocols = returnType ? returnType.protocols : null,
         selector = selectors[0].name // There is always at least one selector
 
-    if (returnTypeProtocols) for (var i = 0, size = returnTypeProtocols.length; i < size; i++) {
+    if (returnTypeProtocols) for (let i = 0, size = returnTypeProtocols.length; i < size; i++) {
       let returnTypeProtocol = returnTypeProtocols[i]
       if (!compiler.getProtocolDef(returnTypeProtocol.name)) {
         compiler.addWarning(createMessage("Cannot find protocol declaration for '" + returnTypeProtocol.name + "'", returnTypeProtocol, compiler.source))
@@ -1941,10 +1941,9 @@ pass2 = walk.make({
 
     // Put together the selector. Maybe this should be done in the parser...
     // Or maybe we should do it here as when genereting Objective-J code it's kind of handy
-    var size = nodeArguments.length
-    if (size > 0) {
-      for (var i = 0; i < nodeArguments.length; i++) {
-        var argument = nodeArguments[i],
+    if (nodeArguments.length > 0) {
+      for (let i = 0; i < nodeArguments.length; i++) {
+        let argument = nodeArguments[i],
             argumentType = argument.type,
             argumentTypeName = argumentType ? argumentType.name : "id",
             argumentProtocols = argumentType ? argumentType.protocols : null
@@ -1956,7 +1955,7 @@ pass2 = walk.make({
         else
           selector += (selectors[i] ? selectors[i].name : "") + ":"
 
-        if (argumentProtocols) for (var j = 0, size = argumentProtocols.length; j < size; j++) {
+        if (argumentProtocols) for (let j = 0; j < argumentProtocols.length; j++) {
           let argumentProtocol = argumentProtocols[j]
           if (!compiler.getProtocolDef(argumentProtocol.name)) {
             compiler.addWarning(createMessage("Cannot find protocol declaration for '" + argumentProtocol.name + "'", argumentProtocol, compiler.source))
@@ -1987,8 +1986,8 @@ pass2 = walk.make({
       methodScope.vars.self = {type: "method base", scope: methodScope}
       methodScope.vars._cmd = {type: "method base", scope: methodScope}
 
-      if (nodeArguments) for (var i = 0; i < nodeArguments.length; i++) {
-        var argument = nodeArguments[i],
+      if (nodeArguments) for (let i = 0; i < nodeArguments.length; i++) {
+        let argument = nodeArguments[i],
             argumentName = argument.identifier.name
 
         compiler.jsBuffer.concat(", ")
@@ -2016,7 +2015,7 @@ pass2 = walk.make({
     compiler.jsBuffer = saveJSBuffer
 
     // Add the method to the class or protocol definition
-    var def = st.classDef,
+    let def = st.classDef,
         alreadyDeclared
 
     // But first, if it is a class definition check if it is declared in superclass or interface declaration
@@ -2026,7 +2025,7 @@ pass2 = walk.make({
       def = st.protocolDef
 
     if (!def)
-      throw "InternalError: MethodDeclaration without ClassDeclaration or ProtocolDeclaration at line: " + objjParser.getLineInfo(compiler.source, node.start).line
+      throw new Error("InternalError: MethodDeclaration without ClassDeclaration or ProtocolDeclaration at line: " + getLineInfo(compiler.source, node.start).line)
 
     // Create warnings if types does not corresponds to method declaration in superclass or interface declarations
     // If we don't find the method in superclass or interface declarations above or if it is a protocol
@@ -2034,9 +2033,9 @@ pass2 = walk.make({
     if (!alreadyDeclared) {
       let protocols = def.protocols
 
-      if (protocols) for (var i = 0, size = protocols.length; i < size; i++) {
-        var protocol = protocols[i],
-            alreadyDeclared = isInstanceMethodType ? protocol.getInstanceMethod(selector) : protocol.getClassMethod(selector)
+      if (protocols) for (let i = 0; i < protocols.length; i++) {
+        let protocol = protocols[i]
+        alreadyDeclared = isInstanceMethodType ? protocol.getInstanceMethod(selector) : protocol.getClassMethod(selector)
 
         if (alreadyDeclared)
           break
@@ -2057,7 +2056,7 @@ pass2 = walk.make({
             compiler.addWarning(createMessage("Conflicting return type in implementation of '" + selector + "': '" + declaredReturnType + "' vs '" + types[0] + "'", returnType || node.action || selectors[0], compiler.source))
 
           // Check the parameter types. The size of the two type arrays should be the same as they have the same selector.
-          for (var i = 1; i < typeSize; i++) {
+          for (let i = 1; i < typeSize; i++) {
             let parameterType = declaredTypes[i]
 
             if (parameterType !== types[i] && !(parameterType === "id" && nodeArguments[i - 1].type.typeisclass))
@@ -2090,22 +2089,25 @@ pass2 = walk.make({
         varScope = st.getVarScope()
 
     // Put together the selector. Maybe this should be done in the parser...
-    for (var i = 0; i < argumentsLength; i++) {
+    for (let i = 0; i < argumentsLength; i++) {
       if (i !== 0) {
-        var nextSelector = selectors[i]
+        let nextSelector = selectors[i]
         if (nextSelector)
           selector += nextSelector.name
       }
       selector += ":"
     }
-
+    let totalNoOfParameters
     if (!inlineMsgSend) {
       // Find out the total number of arguments so we can choose appropriate msgSend function. Only needed if call the function and not inline it
-      var totalNoOfParameters = argumentsLength
+      totalNoOfParameters = argumentsLength
 
       if (parameters)
         totalNoOfParameters += parameters.length
     }
+    let receiverIsIdentifier
+    let receiverIsNotSelf
+    let selfLvar
     if (node.superObject) {
       if (inlineMsgSend) {
         buffer.concat("(", node)
@@ -2123,13 +2125,11 @@ pass2 = walk.make({
     } else {
       // If the recevier is not an identifier or an ivar that should have 'self.' infront we need to assign it to a temporary variable
       // If it is 'self' we assume it will never be nil and remove that test
-      var receiverIsIdentifier = nodeObject.type === "Identifier" && !(st.currentMethodType() === "-" && compiler.getIvarForClass(nodeObject.name, st) && !st.getLvar(nodeObject.name, true)),
-          selfLvar,
-          receiverIsNotSelf
+      receiverIsIdentifier = nodeObject.type === "Identifier" && !(st.currentMethodType() === "-" && compiler.getIvarForClass(nodeObject.name, st) && !st.getLvar(nodeObject.name, true))
 
       if (receiverIsIdentifier) {
-        var name = nodeObject.name,
-            selfLvar = st.getLvar(name)
+        let name = nodeObject.name
+        selfLvar = st.getLvar(name)
 
         if (name === "self") {
           receiverIsNotSelf = !selfLvar || !selfLvar.scope || selfLvar.scope.assignmentToSelf
@@ -2204,8 +2204,8 @@ pass2 = walk.make({
     buffer.concat(", ", node)
     if (selectorJSPath) {
       buffer.concat("(", node)
-      for (var i = 0; i < selectors.length; i++) {
-        var nextSelector = selectors[i]
+      for (let i = 0; i < selectors.length; i++) {
+        let nextSelector = selectors[i]
         if (nextSelector) {
           buffer.concat(selectorJSPath, nextSelector)
           buffer.concat(", ", node)
@@ -2217,14 +2217,14 @@ pass2 = walk.make({
     buffer.concat(selector, node) // FIXME: sel_getUid(selector + "") ? This FIXME is from the old preprocessor compiler
     buffer.concat(selectorJSPath ? "\")" : "\"", node)
 
-    if (nodeArguments) for (var i = 0; i < nodeArguments.length; i++) {
+    if (nodeArguments) for (let i = 0; i < nodeArguments.length; i++) {
       let argument = nodeArguments[i]
 
       buffer.concat(", ", node)
       c(argument, st, "Expression")
     }
 
-    if (parameters) for (var i = 0; i < parameters.length; ++i) {
+    if (parameters) for (let i = 0; i < parameters.length; ++i) {
       let parameter = parameters[i]
 
       buffer.concat(", ", node)
@@ -2278,8 +2278,7 @@ pass2 = walk.make({
     buffer.concat("()")
   },
   ClassStatement: function(node, st, c) {
-    let compiler = st.compiler,
-        buffer = compiler.jsBuffer
+    let compiler = st.compiler
     let className = node.id.name
 
     if (compiler.getTypeDef(className))
@@ -2291,13 +2290,9 @@ pass2 = walk.make({
     st.vars[node.id.name] = {type: "class", node: node.id}
   },
   GlobalStatement: function(node, st, c) {
-    let compiler = st.compiler,
-        buffer = compiler.jsBuffer
     st.rootScope().vars[node.id.name] = {type: "global", node: node.id}
   },
-  PreprocessStatement: function(node, st, c) {
-    let compiler = st.compiler
-  },
+  PreprocessStatement: ignore,
   TypeDefStatement: function(node, st, c) {
     let compiler = st.compiler,
         buffer = compiler.jsBuffer,
