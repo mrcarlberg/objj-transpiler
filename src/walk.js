@@ -596,18 +596,18 @@ pass2 = walk.make({
     buffer.concat(";\n")
   },
   VariableDeclaration: function(node, st, c) {
-    let compiler = st.compiler,
-        isVar = node.kind === "var",
-        varScope = isVar ? st.getVarScope() : st,
-        buffer
-    buffer = compiler.jsBuffer
-    if (!st.isFor) buffer.concat(st.compiler.indentation)
+    const compiler = st.compiler
+    const buffer = compiler.jsBuffer
+    const isVar = node.kind === "var"
+    const varScope = isVar ? st.getVarScope() : st
+
+    if (!st.isFor) buffer.concat(compiler.indentation)
     buffer.concat(node.kind + " ", node)
-    for (var i = 0; i < node.declarations.length; ++i) {
-      let decl = node.declarations[i],
-          identifier = decl.id.name,
-          possibleHoistedVariable = isVar && varScope.possibleHoistedVariables && varScope.possibleHoistedVariables[identifier],
-          variableDeclaration = {type: node.kind, node: decl.id, isRead: (possibleHoistedVariable ? possibleHoistedVariable.isRead : 0)}
+    let isFirst = true
+    for (const decl of node.declarations) {
+      const identifier = decl.id.name
+      let possibleHoistedVariable = isVar && varScope.possibleHoistedVariables?.[identifier]
+      let variableDeclaration = {type: node.kind, node: decl.id, isRead: (possibleHoistedVariable ? possibleHoistedVariable.isRead : 0)}
 
       // Make sure we count the access for this varaible if it is hoisted.
       // Check if this variable has already been accessed above this declaration
@@ -623,14 +623,15 @@ pass2 = walk.make({
       }
       varScope.vars[identifier] = variableDeclaration
 
-      if (i)
+      if (!isFirst) {
         if (st.isFor)
           buffer.concat(", ")
         else {
           buffer.concat(",\n")
-          buffer.concat(st.compiler.indentation)
+          buffer.concat(compiler.indentation)
           buffer.concat("    ")
         }
+      }
 
       c(decl.id, st, "Pattern")
       if (decl.init) {
@@ -643,10 +644,9 @@ pass2 = walk.make({
       if (st.addedSelfToIvars) {
         let addedSelfToIvar = st.addedSelfToIvars[identifier]
         if (addedSelfToIvar) {
-          let jsBuffer = st.compiler.jsBuffer
-          for (var i = 0, size = addedSelfToIvar.length; i < size; i++) {
+          for (var i = 0, size = addedSelfToIvar.length; i < size ; i++) {
             let dict = addedSelfToIvar[i]
-            jsBuffer.removeAtIndex(dict.index)
+            buffer.removeAtIndex(dict.index)
             if (compiler.options.warnings.includes(warningShadowIvar)) compiler.addWarning(createMessage("Local declaration of '" + identifier + "' hides instance variable", dict.node, compiler.source))
           }
           // Add a read mark to the local variable for each time it is used.
@@ -655,6 +655,7 @@ pass2 = walk.make({
           st.addedSelfToIvars[identifier] = []
         }
       }
+      if (isFirst) isFirst = false
     }
     if (!st.isFor) buffer.concat(";\n", node) // Don't add ';' if this is a for statement but do it if this is a statement
   },
@@ -702,7 +703,7 @@ pass2 = walk.make({
           st.isComputed = prop.computed
           st.skipFunctionKeyword = true
           c(prop.value, st, "Expression")
-          delete st.writeFunction
+          delete st.skipFunctionKeyword
           delete st.isComputed
         } else {
           if (prop.computed) buffer.concat("[")
@@ -832,7 +833,7 @@ pass2 = walk.make({
     buffer.concat(")")
   },
   AssignmentExpression: function(node, st, c) {
-    var compiler = st.compiler,
+    let compiler = st.compiler,
         saveAssignment = st.assignment,
         buffer = compiler.jsBuffer
 
@@ -860,8 +861,8 @@ pass2 = walk.make({
       return
     }
 
-    var saveAssignment = st.assignment,
-        nodeLeft = node.left
+    saveAssignment = st.assignment
+    let nodeLeft = node.left
 
     st.assignment = true
     if (nodeLeft.type === "Identifier" && nodeLeft.name === "self") {
@@ -1047,86 +1048,90 @@ pass2 = walk.make({
     }
   },
   Identifier: function(node, st, c) {
-    let compiler = st.compiler,
-        generateObjJ = compiler.options.generateObjJ,
-        identifier = node.name
-    if (!st.isPropertyKey) {
-      let lvarScope = st.getLvarScope(identifier, true) // Only look inside method/function scope
-      let lvar = lvarScope.vars && lvarScope.vars[identifier]
-      if (!st.secondMemberExpression && st.currentMethodType() === "-") {
-        let ivar = compiler.getIvarForClass(identifier, st)
+    const compiler = st.compiler
+    const buffer = compiler.jsBuffer
+    const generateObjJ = compiler.options.generateObjJ
+    const identifier = node.name
 
-        if (ivar) {
-          if (lvar) {
-            if (compiler.options.warnings.includes(warningShadowIvar)) compiler.addWarning(createMessage("Local declaration of '" + identifier + "' hides instance variable", node, compiler.source))
-          } else {
-            let nodeStart = node.start;
+    if (st.isPropertyKey) {
+      buffer.concat(identifier, node, identifier === "self" ? "self" : null)
+      return
+    }
 
-            // Save the index in where the "self." string is stored and the node.
-            // These will be used if we find a variable declaration that is hoisting this identifier.
-            ((st.addedSelfToIvars || (st.addedSelfToIvars = Object.create(null)))[identifier] || (st.addedSelfToIvars[identifier] = [])).push({node, index: compiler.jsBuffer.length()})
-            if (!generateObjJ) compiler.jsBuffer.concat("self.", node)
-          }
-        } else if (!reservedIdentifiers.test(identifier)) { // Don't check for warnings if it is a reserved word like self, localStorage, _cmd, etc...
-          let message,
-              classOrGlobal = typeof global[identifier] !== "undefined" || (typeof window !== "undefined" && typeof window[identifier] !== "undefined") || compiler.getClassDef(identifier),
-              globalVar = st.getLvar(identifier)
-          if (classOrGlobal && (!globalVar || globalVar.type !== "class")) { // It can't be declared with a @class statement.
-            /* Turned off this warning as there are many many warnings when compiling the Cappuccino frameworks - Martin
-                        if (lvar) {
-                            message = compiler.addWarning(createMessage("Local declaration of '" + identifier + "' hides global variable", node, compiler.source));
-                        } */
-          } else if (!globalVar) {
-            if (st.assignment && compiler.options.warnings.includes(warningCreateGlobalInsideFunctionOrMethod)) {
-              message = new GlobalVariableMaybeWarning("Creating global variable inside function or method '" + identifier + "'", node, compiler.source)
-              // Turn off these warnings for this identifier, we only want one.
-              st.vars[identifier] = {type: "remove global warning", node}
-            } else if (compiler.options.warnings.includes(warningUnknownClassOrGlobal)) {
-              message = new GlobalVariableMaybeWarning("Using unknown class or uninitialized global variable '" + identifier + "'", node, compiler.source)
-            }
-          }
-          if (message)
-            st.addMaybeWarning(message)
+    var lvarScope = st.getLvarScope(identifier, true) // Only look inside method/function scope
+    var lvar = lvarScope.vars?.[identifier]
+
+    if (!st.secondMemberExpression && st.currentMethodType() === "-") {
+      var ivar = compiler.getIvarForClass(identifier, st)
+      if (ivar) {
+        if (lvar) {
+          if (compiler.options.warnings.includes(warningShadowIvar)) compiler.addWarning(createMessage("Local declaration of '" + identifier + "' hides instance variable", node, compiler.source))
+        } else {
+          let nodeStart = node.start;
+          // Save the index in where the "self." string is stored and the node.
+          // These will be used if we find a variable declaration that is hoisting this identifier.
+          ((st.addedSelfToIvars || (st.addedSelfToIvars = Object.create(null)))[identifier] || (st.addedSelfToIvars[identifier] = [])).push({node, index: buffer.length()})
+          if (!generateObjJ) buffer.concat("self.", node)
         }
+      } else if (!reservedIdentifiers.test(identifier)) { // Don't check for warnings if it is a reserved word like self, localStorage, _cmd, etc...
+        var message,
+            classOrGlobal = typeof global[identifier] !== "undefined" || (typeof window !== "undefined" && typeof window[identifier] !== "undefined") || compiler.getClassDef(identifier),
+            globalVar = st.getLvar(identifier)
+        if (classOrGlobal && (!globalVar || globalVar.type !== "class")) { // It can't be declared with a @class statement.
+          /* Turned off this warning as there are many many warnings when compiling the Cappuccino frameworks - Martin
+          if (lvar) {
+              message = compiler.addWarning(createMessage("Local declaration of '" + identifier + "' hides global variable", node, compiler.source));
+          } */
+        } else if (!globalVar) {
+          if (st.assignment && compiler.options.warnings.includes(warningCreateGlobalInsideFunctionOrMethod)) {
+            message = new GlobalVariableMaybeWarning("Creating global variable inside function or method '" + identifier + "'", node, compiler.source)
+            // Turn off these warnings for this identifier, we only want one.
+            st.vars[identifier] = {type: "remove global warning", node}
+          } else if (compiler.options.warnings.includes(warningUnknownClassOrGlobal)) {
+            message = new GlobalVariableMaybeWarning("Using unknown class or uninitialized global variable '" + identifier + "'", node, compiler.source)
+          }
+        }
+        if (message)
+          st.addMaybeWarning(message)
       }
-      if (!st.assignment || !st.secondMemberExpression) {
+    }
+    if (!(st.assignment && st.secondMemberExpression)) {
+      if (lvar) {
+        lvar.isRead++
+      } else {
+        // If the var is not declared in current var scope (function scope) we need to save which var it is as it can be hoisted.
+        // First check if the variable is declared higher up in the scope hierarchy
+        lvarScope = lvarScope.getLvarScope(identifier)
+        lvar = lvarScope.vars && lvarScope.vars[identifier]
+        // We will mark it as read.
         if (lvar) {
           lvar.isRead++
+        }
+
+        // The variable can be declared later on in this function / method scope.
+        // It can also be declared later on in a higher scope.
+        // We create a list of possible variables that will be used if it is declared.
+        // We collect how many times the variable is read and a reference to a possible variable in a
+        var possibleHoistedVariable = (lvarScope.possibleHoistedVariables || (lvarScope.possibleHoistedVariables = Object.create(null)))[identifier]
+
+        if (possibleHoistedVariable == null) {
+          var possibleHoistedVariable = {isRead: 1}
+          lvarScope.possibleHoistedVariables[identifier] = possibleHoistedVariable
         } else {
-          // If the var is not declared in current var scope (function scope) we need to save which var it is as it can be hoisted.
-          // First check if the variable is declared higher up in the scope hierarchy
-          lvarScope = lvarScope.getLvarScope(identifier)
-          lvar = lvarScope.vars && lvarScope.vars[identifier]
-          // We will mark it as read.
-          if (lvar) {
-            lvar.isRead++
-          }
+          possibleHoistedVariable.isRead++
+        }
 
-          // The variable can be declared later on in this function / method scope.
-          // It can also be declared later on in a higher scope.
-          // We create a list of possible variables that will be used if it is declared.
-          // We collect how many times the variable is read and a reference to a possible variable in a
-          var possibleHoistedVariable = (lvarScope.possibleHoistedVariables || (lvarScope.possibleHoistedVariables = Object.create(null)))[identifier]
-
-          if (possibleHoistedVariable == null) {
-            var possibleHoistedVariable = {isRead: 1}
-            lvarScope.possibleHoistedVariables[identifier] = possibleHoistedVariable
-          } else {
-            possibleHoistedVariable.isRead++
+        if (lvar) {
+          // If the var and scope are already set it should not be different from what we found now.
+          if ((possibleHoistedVariable.variable && possibleHoistedVariable.variable !== lvar) || (possibleHoistedVariable.varScope && possibleHoistedVariable.varScope !== lvarScope)) {
+            throw new Error("Internal inconsistency, var or scope is not the same")
           }
-
-          if (lvar) {
-            // If the var and scope are already set it should not be different from what we found now.
-            if ((possibleHoistedVariable.variable && possibleHoistedVariable.variable !== lvar) || (possibleHoistedVariable.varScope && possibleHoistedVariable.varScope !== lvarScope)) {
-              throw new Error("Internal inconsistency, var or scope is not the same")
-            }
-            possibleHoistedVariable.variable = lvar
-            possibleHoistedVariable.varScope = lvarScope
-          }
+          possibleHoistedVariable.variable = lvar
+          possibleHoistedVariable.varScope = lvarScope
         }
       }
     }
-    compiler.jsBuffer.concat(identifier, node, identifier === "self" ? "self" : null)
+    buffer.concat(identifier, node, identifier === "self" ? "self" : null)
   },
   YieldExpression: function(node, st, c) {
     let compiler = st.compiler,
