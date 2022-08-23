@@ -189,8 +189,6 @@ let isLogicalBinary = wordsRegexp("LogicalExpression BinaryExpression")
 
 pass2 = walk.make({
   Program: function(node, st, c) {
-    let compiler = st.compiler
-
     for (let i = 0; i < node.body.length; ++i) {
       c(node.body[i], st, "Statement")
     }
@@ -200,34 +198,38 @@ pass2 = walk.make({
     if (maybeWarnings) for (let i = 0; i < maybeWarnings.length; i++) {
       let maybeWarning = maybeWarnings[i]
       if (maybeWarning.checkIfWarning(st)) {
-        compiler.addWarning(maybeWarning.message)
+        st.compiler.addWarning(maybeWarning.message)
       }
     }
   },
   BlockStatement: function(node, st, c) {
-    let compiler = st.compiler,
-        endOfScopeBody = st.endOfScopeBody,
-        buffer
+    const compiler = st.compiler
+    const buffer = compiler.jsBuffer
 
     let isDecl = st.isDecl
     if (isDecl != null) {
       delete st.isDecl
     }
+
+    let endOfScopeBody = st.endOfScopeBody
+    if (endOfScopeBody) {
       delete st.endOfScopeBody
+    }
 
     let skipIndentation = st.skipIndentation
-    buffer = compiler.jsBuffer
-    if (skipIndentation)
+    if (skipIndentation) {
       delete st.skipIndentation
-    else
-      buffer.concat(st.compiler.indentation.substring(st.compiler.indentationSize))
+    } else {
+      buffer.concat(compiler.indentation.substring(compiler.indentationSize))
+    }
+
     buffer.concat("{\n", node)
     let inner = endOfScopeBody ? st : new BlockScope(st)
     for (let i = 0; i < node.body.length; ++i) {
       if (node.body[i].type === "BlockStatement") {
-        st.compiler.indentation += st.compiler.indentStep
+        compiler.indentation += compiler.indentStep
         c(node.body[i], inner, "Statement")
-        st.compiler.indentation = st.compiler.indentation.substring(st.compiler.indentationSize)
+        compiler.indentation = compiler.indentation.substring(compiler.indentationSize)
       } else {
         c(node.body[i], inner, "Statement")
       }
@@ -235,7 +237,7 @@ pass2 = walk.make({
     !endOfScopeBody && inner.variablesNotReadWarnings()
     let maxReceiverLevel = st.maxReceiverLevel
     if (endOfScopeBody && maxReceiverLevel) {
-      buffer.concat(st.compiler.indentation)
+      buffer.concat(compiler.indentation)
       buffer.concat("var ")
       for (let i = 0; i < maxReceiverLevel; i++) {
         if (i) buffer.concat(", ")
@@ -246,9 +248,8 @@ pass2 = walk.make({
     }
 
     // Simulate a node for the last curly bracket
-    //      var endNode = node.loc && { loc: { start: { line : node.loc.end.line, column: node.loc.end.column}}, source: node.loc.source};
-
-    buffer.concat(st.compiler.indentation.substring(st.compiler.indentationSize))
+    // var endNode = node.loc && { loc: { start: { line : node.loc.end.line, column: node.loc.end.column}}, source: node.loc.source};
+    buffer.concat(compiler.indentation.substring(compiler.indentationSize))
     buffer.concat("}", node)
     if (st.isDefaultExport) buffer.concat(";")
     if (!skipIndentation && isDecl !== false) {
@@ -257,15 +258,16 @@ pass2 = walk.make({
     st.indentBlockLevel--
   },
   ExpressionStatement: function(node, st, c) {
-    let compiler = st.compiler
-    compiler.jsBuffer.concat(st.compiler.indentation)
+    const compiler = st.compiler
+    const buffer = compiler.jsBuffer
+    buffer.concat(st.compiler.indentation)
     if (node.expression.type === "Reference") throw compiler.error_message("Can't have reference of expression as a statement", node.expression)
     if ((node.expression.type === "AssignmentExpression" && node.expression.left.type === "ObjectPattern") || node.expression.type === "FunctionExpression" || node.expression.type === "ObjectExpression" || (node.expression.type === "BinaryExpression" && node.expression.left.type === "FunctionExpression") || (node.expression.type === "Literal" && node.expression.value === "use strict" && !node.directive)) {
       surroundExpression(c)(node.expression, st, "Expression")
     } else {
       c(node.expression, st, "Expression")
     }
-    compiler.jsBuffer.concat(";\n", node)
+    buffer.concat(";\n", node)
   },
   IfStatement: function(node, st, c) {
     let compiler = st.compiler,
@@ -463,7 +465,7 @@ pass2 = walk.make({
     buffer.concat(st.compiler.indentation)
     buffer.concat("while (")
     c(node.test, st, "Expression")
-    buffer.concat(")\n")
+    buffer.concat(");\n")
   },
   ForStatement: function(node, st, c) {
     let compiler = st.compiler,
