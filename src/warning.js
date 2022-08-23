@@ -26,11 +26,33 @@ export let warningCreateGlobalInsideFunctionOrMethod = {name: "create-global-ins
 export let warningUnknownClassOrGlobal = {name: "unknown-class-or-global"}
 export let warningUnknownIvarType = {name: "unknown-ivar-type"}
 
-let AllWarnings = [warningUnusedButSetVariable, warningShadowIvar, warningCreateGlobalInsideFunctionOrMethod, warningUnknownClassOrGlobal, warningUnknownIvarType]
+function getLineOffsets(code, offset) {
+  let lineEnd = offset
+  while (lineEnd < code.length) {
+    if (objjParser.isNewLine(code.charCodeAt(lineEnd))) {
+      break
+    }
+    lineEnd++
+  }
+  let lineStart = offset
+  while (lineStart > 0) {
+    if (objjParser.isNewLine(code.charCodeAt(lineStart))) {
+      lineStart++
+      break
+    }
+    lineStart--
+  }
+  return {lineStart, lineEnd}
+}
 
 export function createMessage(/* String */ aMessage, /* SpiderMonkey AST node */ node, /* String */ code) {
-  let message = objjParser.getLineInfo(code, node.start)
-
+  let message = {}
+  const {lineStart, lineEnd} = getLineOffsets(code, node.start)
+  const {line, column} = objjParser.getLineInfo(code, node.start)
+  message.lineStart = lineStart
+  message.lineEnd = lineEnd
+  message.line = line
+  message.column = column
   message.message = aMessage
   // As a SyntaxError object can't change the property 'line' we also set the property 'messageOnLine'
   message.messageOnLine = message.line
