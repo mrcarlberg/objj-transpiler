@@ -379,7 +379,7 @@ pass2 = walk.make({
     buffer.concat(st.compiler.indentation)
     buffer.concat("return", node)
     if (node.argument) {
-      buffer.concatFormat(" ")
+      buffer.concat(" ")
       c(node.argument, st, "Expression")
     }
     buffer.concat(";\n")
@@ -390,7 +390,7 @@ pass2 = walk.make({
     buffer = compiler.jsBuffer
     buffer.concat(st.compiler.indentation)
     buffer.concat("throw", node)
-    buffer.concatFormat(" ")
+    buffer.concat(" ")
     c(node.argument, st, "Expression")
     buffer.concat(";\n")
   },
@@ -400,7 +400,7 @@ pass2 = walk.make({
     buffer = compiler.jsBuffer
     buffer.concat(st.compiler.indentation)
     buffer.concat("try", node)
-    buffer.concatFormat(" ")
+    buffer.concat(" ")
     st.compiler.indentation += st.compiler.indentStep
     st.skipIndentation = true
     c(node.block, st, "Statement")
@@ -651,7 +651,7 @@ pass2 = walk.make({
       if (st.addedSelfToIvars) {
         let addedSelfToIvar = st.addedSelfToIvars[identifier]
         if (addedSelfToIvar) {
-          for (var i = 0, size = addedSelfToIvar.length; i < size ; i++) {
+          for (var i = 0, size = addedSelfToIvar.length; i < size; i++) {
             let dict = addedSelfToIvar[i]
             buffer.removeAtIndex(dict.index)
             if (compiler.options.warnings.includes(warningShadowIvar)) compiler.addWarning(createMessage("Local declaration of '" + identifier + "' hides instance variable", dict.node, compiler.source))
@@ -811,9 +811,9 @@ pass2 = walk.make({
       (nodePrecedence(node, node.left) ? surroundExpression(c) : c)(node.left, st, "Expression")
     }
     let buffer = compiler.jsBuffer
-    buffer.concatFormat(" ")
+    buffer.concat(" ")
     buffer.concat(node.operator, node)
-    buffer.concatFormat(" ");
+    buffer.concat(" ");
     (nodePrecedence(node, node.right, true) ? surroundExpression(c) : c)(node.right, st, "Expression")
   },
   LogicalExpression: function(node, st, c) {
@@ -824,9 +824,9 @@ pass2 = walk.make({
       (nodePrecedence(node, node.left) ? surroundExpression(c) : c)(node.left, st, "Expression")
     }
     let buffer = compiler.jsBuffer
-    buffer.concatFormat(" ")
+    buffer.concat(" ")
     buffer.concat(node.operator)
-    buffer.concatFormat(" ")
+    buffer.concat(" ")
     if (node.operator === "??") {
       surroundExpression(c)(node.right, st, "Expression")
     } else {
@@ -881,9 +881,9 @@ pass2 = walk.make({
       }
     }
     (nodePrecedence(node, nodeLeft) ? surroundExpression(c) : c)(nodeLeft, st, "Expression")
-    buffer.concatFormat(" ")
+    buffer.concat(" ")
     buffer.concat(node.operator)
-    buffer.concatFormat(" ")
+    buffer.concat(" ")
     st.assignment = saveAssignment;
     (nodePrecedence(node, node.right, true) ? surroundExpression(c) : c)(node.right, st, "Expression")
     let varScope = st.getVarScope()
@@ -956,7 +956,7 @@ pass2 = walk.make({
     if (nodeArguments) {
       for (let i = 0, size = nodeArguments.length; i < size; ++i) {
         if (i)
-          buffer.concatFormat(", ")
+          buffer.concat(", ")
         c(nodeArguments[i], st, "Expression")
       }
     }
@@ -1024,7 +1024,7 @@ pass2 = walk.make({
     buffer = compiler.jsBuffer
     buffer.concat("await", node)
     if (node.argument) {
-      buffer.concatFormat(" ")
+      buffer.concat(" ")
       buffer.concat("(")
       c(node.argument, st, "Expression")
       buffer.concat(")")
@@ -1057,7 +1057,6 @@ pass2 = walk.make({
   Identifier: function(node, st, c) {
     const compiler = st.compiler
     const buffer = compiler.jsBuffer
-    const generateObjJ = compiler.options.generateObjJ
     const identifier = node.name
 
     if (st.isPropertyKey) {
@@ -1065,11 +1064,11 @@ pass2 = walk.make({
       return
     }
 
-    var lvarScope = st.getLvarScope(identifier, true) // Only look inside method/function scope
-    var lvar = lvarScope.vars?.[identifier]
+    let lvarScope = st.getLvarScope(identifier, true) // Only look inside method/function scope
+    let lvar = lvarScope.vars?.[identifier]
 
     if (!st.secondMemberExpression && st.currentMethodType() === "-") {
-      var ivar = compiler.getIvarForClass(identifier, st)
+      let ivar = compiler.getIvarForClass(identifier, st)
       if (ivar) {
         if (lvar) {
           if (compiler.options.warnings.includes(warningShadowIvar)) compiler.addWarning(createMessage("Local declaration of '" + identifier + "' hides instance variable", node, compiler.source))
@@ -1078,10 +1077,10 @@ pass2 = walk.make({
           // Save the index in where the "self." string is stored and the node.
           // These will be used if we find a variable declaration that is hoisting this identifier.
           ((st.addedSelfToIvars || (st.addedSelfToIvars = Object.create(null)))[identifier] || (st.addedSelfToIvars[identifier] = [])).push({node, index: buffer.length()})
-          if (!generateObjJ) buffer.concat("self.", node)
+          buffer.concat("self.", node)
         }
       } else if (!reservedIdentifiers.test(identifier)) { // Don't check for warnings if it is a reserved word like self, localStorage, _cmd, etc...
-        var message,
+        let message,
             classOrGlobal = typeof global[identifier] !== "undefined" || (typeof window !== "undefined" && typeof window[identifier] !== "undefined") || compiler.getClassDef(identifier),
             globalVar = st.getLvar(identifier)
         if (classOrGlobal && (!globalVar || globalVar.type !== "class")) { // It can't be declared with a @class statement.
@@ -1147,7 +1146,7 @@ pass2 = walk.make({
     buffer.concat("yield", node)
     if (node.delegate) buffer.concat("*")
     if (node.argument) {
-      buffer.concatFormat(" ")
+      buffer.concat(" ")
       c(node.argument, st, "Expression")
     }
   },
@@ -1366,14 +1365,11 @@ pass2 = walk.make({
   ArrayLiteral: function(node, st, c) {
     let compiler = st.compiler,
         buffer = compiler.jsBuffer,
-        generateObjJ = compiler.options.generateObjJ,
         elementLength = node.elements.length,
         varScope = st.getVarScope()
 
     if (!varScope.receiverLevel) varScope.receiverLevel = 0
-    if (generateObjJ) {
-      buffer.concat("@[")
-    } else if (!elementLength) {
+    if (!elementLength) {
       if (compiler.options.inlineMsgSendFunctions) {
         buffer.concat("(___r", node)
         buffer.concat(++varScope.receiverLevel + "")
@@ -1441,32 +1437,18 @@ pass2 = walk.make({
 
         c(elt, st, "Expression")
       }
-      if (!generateObjJ) buffer.concat("], " + elementLength + "))")
+      buffer.concat("], " + elementLength + "))")
     }
-
-    if (generateObjJ)
-      buffer.concat("]")
-    else
-      varScope.receiverLevel--
+    varScope.receiverLevel--
   },
   DictionaryLiteral: function(node, st, c) {
     let compiler = st.compiler,
         buffer = compiler.jsBuffer,
-        generateObjJ = compiler.options.generateObjJ,
         keyLength = node.keys.length,
         varScope = st.getVarScope()
 
     if (!varScope.receiverLevel) varScope.receiverLevel = 0
-    if (generateObjJ) {
-      buffer.concat("@{")
-      for (let i = 0; i < keyLength; i++) {
-        if (i !== 0) buffer.concat(",")
-        c(node.keys[i], st, "Expression")
-        buffer.concat(":")
-        c(node.values[i], st, "Expression")
-      }
-      buffer.concat("}")
-    } else if (!keyLength) {
+    if (!keyLength) {
       if (compiler.options.inlineMsgSendFunctions) {
         buffer.concat("(___r", node)
         buffer.concat(++varScope.receiverLevel + "")
@@ -1543,26 +1525,15 @@ pass2 = walk.make({
       }
       buffer.concat("]))")
     }
-
-    if (!generateObjJ)
-      varScope.receiverLevel--
+    varScope.receiverLevel--
   },
   ImportStatement: function(node, st, c) {
     let compiler = st.compiler,
         buffer = compiler.jsBuffer,
-        localfilepath = node.localfilepath,
-        generateObjJ = compiler.options.generateObjJ
-
-    if (generateObjJ) {
-      buffer.concat("@import ")
-      buffer.concat(localfilepath ? "\"" : "<")
-      buffer.concat(node.filename.value)
-      buffer.concat(localfilepath ? "\"" : ">")
-    } else {
-      buffer.concat("objj_executeFile(\"", node)
-      buffer.concat(node.filename.value)
-      buffer.concat(localfilepath ? "\", YES);" : "\", NO);")
-    }
+        localfilepath = node.localfilepath
+    buffer.concat("objj_executeFile(\"", node)
+    buffer.concat(node.filename.value)
+    buffer.concat(localfilepath ? "\", YES);" : "\", NO);")
   },
   ClassDeclarationStatement: function(node, st, c) {
     let compiler = st.compiler,
@@ -1572,8 +1543,7 @@ pass2 = walk.make({
         classScope = new Scope(st),
         isInterfaceDeclaration = node.type === "InterfaceDeclarationStatement",
         protocols = node.protocols,
-        options = compiler.options,
-        generateObjJ = options.generateObjJ
+        options = compiler.options
 
     compiler.imBuffer = new StringBuffer(compiler.createSourceMap, compiler.URL, options.sourceMap && options.sourceMapIncludeSource ? compiler.source : null)
     compiler.cmBuffer = new StringBuffer(compiler.createSourceMap, compiler.URL)
@@ -1589,14 +1559,14 @@ pass2 = walk.make({
       // "interface" declaration (without ivars dictionary)
       // TODO: Create a ClassDef object and add this logic to it
       if (classDef && classDef.ivars)
-      // It has a real implementation declaration already
+        // It has a real implementation declaration already
         throw compiler.error_message("Duplicate class " + className, node.classname)
 
       if (isInterfaceDeclaration && classDef && classDef.instanceMethods && classDef.classMethods)
-      // It has a interface declaration already
+        // It has a interface declaration already
         throw compiler.error_message("Duplicate interface definition for class " + className, node.classname)
       let superClassDef = compiler.getClassDef(node.superclassname.name)
-      if (!superClassDef && !generateObjJ) // Don't throw error for this when generating Objective-J code
+      if (!superClassDef) // Don't throw error for this when generating Objective-J code
       {
         let errorMessage = "Can't find superclass " + node.superclassname.name
         let stack = compiler.constructor.importStack
@@ -1607,51 +1577,25 @@ pass2 = walk.make({
 
       classDef = new ClassDef(!isInterfaceDeclaration, className, superClassDef, Object.create(null))
 
-      if (!generateObjJ) saveJSBuffer.concat("\n{var the_class = objj_allocateClassPair(" + node.superclassname.name + ", \"" + className + "\"),\nmeta_class = the_class.isa;", node)
+      saveJSBuffer.concat("\n{var the_class = objj_allocateClassPair(" + node.superclassname.name + ", \"" + className + "\"),\nmeta_class = the_class.isa;", node)
     } else if (node.categoryname) {
       classDef = compiler.getClassDef(className)
       if (!classDef)
         throw compiler.error_message("Class " + className + " not found ", node.classname)
 
-      if (!generateObjJ) {
-        saveJSBuffer.concat("{\nvar the_class = objj_getClass(\"" + className + "\")\n", node)
-        saveJSBuffer.concat("if(!the_class) throw new SyntaxError(\"*** Could not find definition for class \\\"" + className + "\\\"\");\n")
-        saveJSBuffer.concat("var meta_class = the_class.isa;")
-      }
+      saveJSBuffer.concat("{\nvar the_class = objj_getClass(\"" + className + "\")\n", node)
+      saveJSBuffer.concat("if(!the_class) throw new SyntaxError(\"*** Could not find definition for class \\\"" + className + "\\\"\");\n")
+      saveJSBuffer.concat("var meta_class = the_class.isa;")
     } else {
       classDef = new ClassDef(!isInterfaceDeclaration, className, null, Object.create(null))
 
-      if (!generateObjJ)
-        saveJSBuffer.concat("{var the_class = objj_allocateClassPair(Nil, \"" + className + "\"),\nmeta_class = the_class.isa;", node)
-    }
-
-    if (generateObjJ) {
-      saveJSBuffer.concat(isInterfaceDeclaration ? "@interface " : "@implementation ")
-      saveJSBuffer.concat(className)
-      if (node.superclassname) {
-        saveJSBuffer.concat(" : ")
-        c(node.superclassname, st, "VariablePattern")
-      } else if (node.categoryname) {
-        saveJSBuffer.concat(" (")
-        c(node.categoryname, st, "VariablePattern")
-        saveJSBuffer.concat(")")
-      }
+      saveJSBuffer.concat("{var the_class = objj_allocateClassPair(Nil, \"" + className + "\"),\nmeta_class = the_class.isa;", node)
     }
 
     if (protocols) for (var i = 0, size = protocols.length; i < size; i++) {
-      if (generateObjJ) {
-        if (i)
-          saveJSBuffer.concat(", ")
-        else
-          saveJSBuffer.concat(" <")
-        c(protocols[i], st, "VariablePattern")
-        if (i === size - 1)
-          saveJSBuffer.concat(">")
-      } else {
-        saveJSBuffer.concat("\nvar aProtocol = objj_getProtocol(\"" + protocols[i].name + "\");", protocols[i])
-        saveJSBuffer.concat("\nif (!aProtocol) throw new SyntaxError(\"*** Could not find definition for protocol \\\"" + protocols[i].name + "\\\"\");")
-        saveJSBuffer.concat("\nclass_addProtocol(the_class, aProtocol);")
-      }
+      saveJSBuffer.concat("\nvar aProtocol = objj_getProtocol(\"" + protocols[i].name + "\");", protocols[i])
+      saveJSBuffer.concat("\nif (!aProtocol) throw new SyntaxError(\"*** Could not find definition for protocol \\\"" + protocols[i].name + "\\\"\");")
+      saveJSBuffer.concat("\nclass_addProtocol(the_class, aProtocol);")
     }
     /*
             if (isInterfaceDeclaration)
@@ -1668,11 +1612,6 @@ pass2 = walk.make({
 
     // Then we add all ivars
     if (node.ivardeclarations) {
-      if (generateObjJ) {
-        saveJSBuffer.concat("{")
-        st.compiler.indentation += st.compiler.indentStep
-      }
-
       for (var i = 0; i < node.ivardeclarations.length; ++i) {
         var ivarDecl = node.ivardeclarations[i],
             ivarType = ivarDecl.ivartype ? ivarDecl.ivartype.name : null,
@@ -1693,25 +1632,21 @@ pass2 = walk.make({
         checkIfIvarIsAlreadyDeclaredAndInSuperClass(classDef, checkIfIvarIsAlreadyDeclaredAndInSuperClass)
 
         let isTypeDefined = !ivarTypeIsClass || typeof global[ivarType] !== "undefined" || (typeof window !== "undefined" && typeof window[ivarType] !== "undefined") ||
-                    compiler.getClassDef(ivarType) || compiler.getTypeDef(ivarType) || ivarType === classDef.name
+          compiler.getClassDef(ivarType) || compiler.getTypeDef(ivarType) || ivarType === classDef.name
 
         if (!isTypeDefined && compiler.options.warnings.includes(warningUnknownIvarType))
           compiler.addWarning(createMessage("Unknown type '" + ivarType + "' for ivar '" + ivarName + "'", ivarDecl.ivartype, compiler.source))
 
-        if (generateObjJ) {
-          c(ivarDecl, st, "IvarDeclaration")
-        } else {
-          if (firstIvarDeclaration) {
-            firstIvarDeclaration = false
-            saveJSBuffer.concat("class_addIvars(the_class, [")
-          } else
-            saveJSBuffer.concat(", ")
+        if (firstIvarDeclaration) {
+          firstIvarDeclaration = false
+          saveJSBuffer.concat("class_addIvars(the_class, [")
+        } else
+          saveJSBuffer.concat(", ")
 
-          if (options.includeIvarTypeSignatures)
-            saveJSBuffer.concat("new objj_ivar(\"" + ivarName + "\", \"" + ivarType + "\")", node)
-          else
-            saveJSBuffer.concat("new objj_ivar(\"" + ivarName + "\")", node)
-        }
+        if (options.includeIvarTypeSignatures)
+          saveJSBuffer.concat("new objj_ivar(\"" + ivarName + "\", \"" + ivarType + "\")", node)
+        else
+          saveJSBuffer.concat("new objj_ivar(\"" + ivarName + "\")", node)
 
         if (ivarDecl.outlet)
           ivar.outlet = true
@@ -1745,14 +1680,11 @@ pass2 = walk.make({
         }
       }
     }
-    if (generateObjJ) {
-      st.compiler.indentation = st.compiler.indentation.substring(st.compiler.indentationSize)
-      saveJSBuffer.concatFormat("\n}")
-    } else if (!firstIvarDeclaration)
+    if (!firstIvarDeclaration)
       saveJSBuffer.concat("]);")
 
     // If we have accessors add get and set methods for them
-    if (!generateObjJ && !isInterfaceDeclaration && hasAccessors) {
+    if (!isInterfaceDeclaration && hasAccessors) {
       // We pass false to the string buffer as we don't need source map when we create the Objective-J code for the accessors
       let getterSetterBuffer = new StringBuffer(false)
 
@@ -1847,32 +1779,29 @@ pass2 = walk.make({
     }
 
     // We must make a new class object for our class definition if it's not a category
-    if (!generateObjJ && !isInterfaceDeclaration && !node.categoryname) {
+    if (!isInterfaceDeclaration && !node.categoryname) {
       saveJSBuffer.concat("objj_registerClassPair(the_class);\n")
     }
 
     // Add instance methods
-    if (!generateObjJ && compiler.imBuffer.isEmpty()) {
+    if (compiler.imBuffer.isEmpty()) {
       saveJSBuffer.concat("class_addMethods(the_class, [")
       saveJSBuffer.appendStringBuffer(compiler.imBuffer)
       saveJSBuffer.concat("]);\n")
     }
 
     // Add class methods
-    if (!generateObjJ && compiler.cmBuffer.isEmpty()) {
+    if (compiler.cmBuffer.isEmpty()) {
       saveJSBuffer.concat("class_addMethods(meta_class, [")
       saveJSBuffer.appendStringBuffer(compiler.cmBuffer)
       saveJSBuffer.concat("]);\n")
     }
 
-    if (!generateObjJ) saveJSBuffer.concat("}\n")
+    saveJSBuffer.concat("}\n")
 
     compiler.jsBuffer = saveJSBuffer
 
     // Skip the "@end"
-
-    if (generateObjJ)
-      saveJSBuffer.concat("\n@end")
 
     // If the class conforms to protocols check that all required methods are implemented
     if (protocols) {
@@ -1908,8 +1837,7 @@ pass2 = walk.make({
         protocolDef = compiler.getProtocolDef(protocolName),
         protocols = node.protocols,
         protocolScope = new Scope(st),
-        inheritFromProtocols = [],
-        generateObjJ = compiler.options.generateObjJ
+        inheritFromProtocols = []
 
     if (protocolDef)
       throw compiler.error_message("Duplicate protocol " + protocolName, node.protocolname)
@@ -1917,17 +1845,9 @@ pass2 = walk.make({
     compiler.imBuffer = new StringBuffer(compiler.createSourceMap, compiler.URL)
     compiler.cmBuffer = new StringBuffer(compiler.createSourceMap, compiler.URL)
 
-    if (generateObjJ) {
-      buffer.concat("@protocol ")
-      c(node.protocolname, st, "VariablePattern")
-    } else {
-      buffer.concat("{var the_protocol = objj_allocateProtocol(\"" + protocolName + "\");", node)
-    }
+    buffer.concat("{var the_protocol = objj_allocateProtocol(\"" + protocolName + "\");", node)
 
     if (protocols) {
-      if (generateObjJ)
-        buffer.concat(" <")
-
       for (var i = 0, size = protocols.length; i < size; i++) {
         let protocol = protocols[i],
             inheritFromProtocolName = protocol.name,
@@ -1936,22 +1856,12 @@ pass2 = walk.make({
         if (!inheritProtocolDef)
           throw compiler.error_message("Can't find protocol " + inheritFromProtocolName, protocol)
 
-        if (generateObjJ) {
-          if (i)
-            buffer.concat(", ")
-
-          c(protocol, st, "VariablePattern")
-        } else {
-          buffer.concat("\nvar aProtocol = objj_getProtocol(\"" + inheritFromProtocolName + "\");", node)
-          buffer.concat("\nif (!aProtocol) throw new SyntaxError(\"*** Could not find definition for protocol \\\"" + protocolName + "\\\"\");", node)
-          buffer.concat("\nprotocol_addProtocol(the_protocol, aProtocol);", node)
-        }
+        buffer.concat("\nvar aProtocol = objj_getProtocol(\"" + inheritFromProtocolName + "\");", node)
+        buffer.concat("\nif (!aProtocol) throw new SyntaxError(\"*** Could not find definition for protocol \\\"" + protocolName + "\\\"\");", node)
+        buffer.concat("\nprotocol_addProtocol(the_protocol, aProtocol);", node)
 
         inheritFromProtocols.push(inheritProtocolDef)
       }
-
-      if (generateObjJ)
-        buffer.concat(">")
     }
 
     protocolDef = new ProtocolDef(protocolName, inheritFromProtocols)
@@ -1972,27 +1882,23 @@ pass2 = walk.make({
       }
     }
 
-    if (generateObjJ) {
-      buffer.concatFormat("\n@end")
-    } else {
-      buffer.concat("\nobjj_registerProtocol(the_protocol);\n")
+    buffer.concat("\nobjj_registerProtocol(the_protocol);\n")
 
-      // Add instance methods
-      if (compiler.imBuffer.isEmpty()) {
-        buffer.concat("protocol_addMethodDescriptions(the_protocol, [")
-        buffer.appendStringBuffer(compiler.imBuffer)
-        buffer.concat("], true, true);\n")
-      }
-
-      // Add class methods
-      if (compiler.cmBuffer.isEmpty()) {
-        buffer.concat("protocol_addMethodDescriptions(the_protocol, [")
-        buffer.appendStringBuffer(compiler.cmBuffer)
-        buffer.concat("], true, false);\n")
-      }
-
-      buffer.concat("}")
+    // Add instance methods
+    if (compiler.imBuffer.isEmpty()) {
+      buffer.concat("protocol_addMethodDescriptions(the_protocol, [")
+      buffer.appendStringBuffer(compiler.imBuffer)
+      buffer.concat("], true, true);\n")
     }
+
+    // Add class methods
+    if (compiler.cmBuffer.isEmpty()) {
+      buffer.concat("protocol_addMethodDescriptions(the_protocol, [")
+      buffer.appendStringBuffer(compiler.cmBuffer)
+      buffer.concat("], true, false);\n")
+    }
+
+    buffer.concat("}")
 
     compiler.jsBuffer = buffer
 
@@ -2020,8 +1926,7 @@ pass2 = walk.make({
         returnType = node.returntype,
         types = [returnType ? returnType.name : (node.action ? "void" : "id")], // Return type is 'id' as default except if it is an action declared method, then it's 'void'
         returnTypeProtocols = returnType ? returnType.protocols : null,
-        selector = selectors[0].name, // There is always at least one selector
-        generateObjJ = compiler.options.generateObjJ
+        selector = selectors[0].name // There is always at least one selector
 
     if (returnTypeProtocols) for (var i = 0, size = returnTypeProtocols.length; i < size; i++) {
       let returnTypeProtocol = returnTypeProtocols[i]
@@ -2032,13 +1937,7 @@ pass2 = walk.make({
 
     // If we are generating objective-J code write everything directly to the regular buffer
     // Otherwise we have one for instance methods and one for class methods.
-    if (generateObjJ) {
-      compiler.jsBuffer.concat(isInstanceMethodType ? "- (" : "+ (")
-      compiler.jsBuffer.concat(types[0])
-      compiler.jsBuffer.concat(")")
-    } else {
-      compiler.jsBuffer = isInstanceMethodType ? compiler.imBuffer : compiler.cmBuffer
-    }
+    compiler.jsBuffer = isInstanceMethodType ? compiler.imBuffer : compiler.cmBuffer
 
     // Put together the selector. Maybe this should be done in the parser...
     // Or maybe we should do it here as when genereting Objective-J code it's kind of handy
@@ -2058,68 +1957,31 @@ pass2 = walk.make({
           selector += (selectors[i] ? selectors[i].name : "") + ":"
 
         if (argumentProtocols) for (var j = 0, size = argumentProtocols.length; j < size; j++) {
-          var argumentProtocol = argumentProtocols[j]
+          let argumentProtocol = argumentProtocols[j]
           if (!compiler.getProtocolDef(argumentProtocol.name)) {
             compiler.addWarning(createMessage("Cannot find protocol declaration for '" + argumentProtocol.name + "'", argumentProtocol, compiler.source))
           }
         }
-
-        if (generateObjJ) {
-          let aSelector = selectors[i]
-
-          if (i)
-            compiler.jsBuffer.concat(" ")
-
-          compiler.jsBuffer.concat((aSelector ? aSelector.name : "") + ":")
-          compiler.jsBuffer.concat("(")
-          compiler.jsBuffer.concat(argumentTypeName)
-          if (argumentProtocols) {
-            compiler.jsBuffer.concat(" <")
-            for (var j = 0, size = argumentProtocols.length; j < size; j++) {
-              var argumentProtocol = argumentProtocols[j]
-
-              if (j)
-                compiler.jsBuffer.concat(", ")
-
-              compiler.jsBuffer.concat(argumentProtocol.name)
-            }
-
-            compiler.jsBuffer.concat(">")
-          }
-          compiler.jsBuffer.concat(")")
-          c(argument.identifier, st, "VariablePattern")
-        }
       }
-    } else if (generateObjJ) {
-      let selectorNode = selectors[0]
-      compiler.jsBuffer.concat(selectorNode.name, selectorNode)
     }
 
-    if (generateObjJ) {
-      if (node.parameters) {
-        compiler.jsBuffer.concat(", ...")
-      }
-    } else {
-      if (compiler.jsBuffer.isEmpty()) // Add comma separator if this is not first method in this buffer
-        compiler.jsBuffer.concat(", ")
+    if (compiler.jsBuffer.isEmpty()) // Add comma separator if this is not first method in this buffer
+      compiler.jsBuffer.concat(", ")
 
-      compiler.jsBuffer.concat("new objj_method(sel_getUid(\"", node)
-      compiler.jsBuffer.concat(selector)
-      compiler.jsBuffer.concat("\"), ")
-    }
+    compiler.jsBuffer.concat("new objj_method(sel_getUid(\"", node)
+    compiler.jsBuffer.concat(selector)
+    compiler.jsBuffer.concat("\"), ")
 
     if (node.body) {
-      if (!generateObjJ) {
-        if (node.returntype && node.returntype.async)
-          compiler.jsBuffer.concat("async ")
-        compiler.jsBuffer.concat("function")
+      if (node.returntype && node.returntype.async)
+        compiler.jsBuffer.concat("async ")
+      compiler.jsBuffer.concat("function")
 
-        if (compiler.options.includeMethodFunctionNames) {
-          compiler.jsBuffer.concat(" $" + st.currentClassName() + "__" + selector.replace(/:/g, "_"))
-        }
-
-        compiler.jsBuffer.concat("(self, _cmd")
+      if (compiler.options.includeMethodFunctionNames) {
+        compiler.jsBuffer.concat(" $" + st.currentClassName() + "__" + selector.replace(/:/g, "_"))
       }
+
+      compiler.jsBuffer.concat("(self, _cmd")
 
       methodScope.methodType = node.methodtype
       methodScope.vars.self = {type: "method base", scope: methodScope}
@@ -2129,15 +1991,13 @@ pass2 = walk.make({
         var argument = nodeArguments[i],
             argumentName = argument.identifier.name
 
-        if (!generateObjJ) {
-          compiler.jsBuffer.concat(", ")
-          compiler.jsBuffer.concat(argumentName, argument.identifier)
-        }
+        compiler.jsBuffer.concat(", ")
+        compiler.jsBuffer.concat(argumentName, argument.identifier)
+
         methodScope.vars[argumentName] = {type: "method argument", node: argument}
       }
 
-      if (!generateObjJ)
-        compiler.jsBuffer.concat(")\n")
+      compiler.jsBuffer.concat(")\n")
 
       st.compiler.indentation += st.compiler.indentStep
       methodScope.endOfScopeBody = true
@@ -2145,21 +2005,15 @@ pass2 = walk.make({
       methodScope.variablesNotReadWarnings()
       st.compiler.indentation = st.compiler.indentation.substring(st.compiler.indentationSize)
 
-      if (!generateObjJ)
-        compiler.jsBuffer.concat("\n")
+      compiler.jsBuffer.concat("\n")
     } else { // It is a interface or protocol declatartion and we don't have a method implementation
-      if (generateObjJ)
-        compiler.jsBuffer.concat(";")
-      else
-        compiler.jsBuffer.concat("Nil\n")
+      compiler.jsBuffer.concat("Nil\n")
     }
 
-    if (!generateObjJ) {
-      if (compiler.options.includeMethodArgumentTypeSignatures)
-        compiler.jsBuffer.concat("," + JSON.stringify(types))
-      compiler.jsBuffer.concat(")")
-      compiler.jsBuffer = saveJSBuffer
-    }
+    if (compiler.options.includeMethodArgumentTypeSignatures)
+      compiler.jsBuffer.concat("," + JSON.stringify(types))
+    compiler.jsBuffer.concat(")")
+    compiler.jsBuffer = saveJSBuffer
 
     // Add the method to the class or protocol definition
     var def = st.classDef,
@@ -2222,7 +2076,7 @@ pass2 = walk.make({
       def.addClassMethod(methodDef)
   },
   MessageSendExpression: function(node, st, c) {
-    var compiler = st.compiler,
+    let compiler = st.compiler,
         inlineMsgSend = compiler.options.inlineMsgSendFunctions,
         buffer = compiler.jsBuffer,
         nodeObject = node.object,
@@ -2233,7 +2087,6 @@ pass2 = walk.make({
         selector = firstSelector ? firstSelector.name : "", // There is always at least one selector
         parameters = node.parameters,
         options = compiler.options,
-        generateObjJ = options.generateObjJ,
         varScope = st.getVarScope()
 
     // Put together the selector. Maybe this should be done in the parser...
@@ -2254,232 +2107,179 @@ pass2 = walk.make({
         totalNoOfParameters += parameters.length
     }
     if (node.superObject) {
-      if (generateObjJ) {
-        buffer.concat("[super ")
+      if (inlineMsgSend) {
+        buffer.concat("(", node)
+        buffer.concat(st.currentMethodType() === "+" ? compiler.currentSuperMetaClass : compiler.currentSuperClass)
+        buffer.concat(".method_dtable[\"", node)
+        buffer.concat(selector)
+        buffer.concat("\"] || _objj_forward)(self", node)
       } else {
-        if (inlineMsgSend) {
-          buffer.concat("(", node)
-          buffer.concat(st.currentMethodType() === "+" ? compiler.currentSuperMetaClass : compiler.currentSuperClass)
-          buffer.concat(".method_dtable[\"", node)
-          buffer.concat(selector)
-          buffer.concat("\"] || _objj_forward)(self", node)
-        } else {
-          buffer.concat("objj_msgSendSuper", node)
-          if (totalNoOfParameters < 4) {
-            buffer.concat("" + totalNoOfParameters)
-          }
-          buffer.concat("({ receiver:self, super_class:" + (st.currentMethodType() === "+" ? compiler.currentSuperMetaClass : compiler.currentSuperClass) + " }", node)
+        buffer.concat("objj_msgSendSuper", node)
+        if (totalNoOfParameters < 4) {
+          buffer.concat("" + totalNoOfParameters)
         }
+        buffer.concat("({ receiver:self, super_class:" + (st.currentMethodType() === "+" ? compiler.currentSuperMetaClass : compiler.currentSuperClass) + " }", node)
       }
     } else {
-      if (generateObjJ) {
-        buffer.concat("[")
+      // If the recevier is not an identifier or an ivar that should have 'self.' infront we need to assign it to a temporary variable
+      // If it is 'self' we assume it will never be nil and remove that test
+      var receiverIsIdentifier = nodeObject.type === "Identifier" && !(st.currentMethodType() === "-" && compiler.getIvarForClass(nodeObject.name, st) && !st.getLvar(nodeObject.name, true)),
+          selfLvar,
+          receiverIsNotSelf
+
+      if (receiverIsIdentifier) {
+        var name = nodeObject.name,
+            selfLvar = st.getLvar(name)
+
+        if (name === "self") {
+          receiverIsNotSelf = !selfLvar || !selfLvar.scope || selfLvar.scope.assignmentToSelf
+        } else {
+          receiverIsNotSelf = !!selfLvar || !compiler.getClassDef(name)
+        }
+
+        if (receiverIsNotSelf) {
+          buffer.concat("(", node)
+          c(nodeObject, st, "Expression")
+          buffer.concat(" == null ? ", node)
+          c(nodeObject, st, "Expression")
+          buffer.concat(" : ", node)
+        }
+        if (inlineMsgSend)
+          buffer.concat("(", node)
         c(nodeObject, st, "Expression")
       } else {
-        // If the recevier is not an identifier or an ivar that should have 'self.' infront we need to assign it to a temporary variable
-        // If it is 'self' we assume it will never be nil and remove that test
-        var receiverIsIdentifier = nodeObject.type === "Identifier" && !(st.currentMethodType() === "-" && compiler.getIvarForClass(nodeObject.name, st) && !st.getLvar(nodeObject.name, true)),
-            selfLvar,
-            receiverIsNotSelf
-
-        if (receiverIsIdentifier) {
-          var name = nodeObject.name,
-              selfLvar = st.getLvar(name)
-
-          if (name === "self") {
-            receiverIsNotSelf = !selfLvar || !selfLvar.scope || selfLvar.scope.assignmentToSelf
-          } else {
-            receiverIsNotSelf = !!selfLvar || !compiler.getClassDef(name)
-          }
-
-          if (receiverIsNotSelf) {
-            buffer.concat("(", node)
-            c(nodeObject, st, "Expression")
-            buffer.concat(" == null ? ", node)
-            c(nodeObject, st, "Expression")
-            buffer.concat(" : ", node)
-          }
-          if (inlineMsgSend)
-            buffer.concat("(", node)
-          c(nodeObject, st, "Expression")
-        } else {
-          receiverIsNotSelf = true
-          if (!varScope.receiverLevel) varScope.receiverLevel = 0
-          buffer.concat("((___r" + ++varScope.receiverLevel, node)
-          buffer.concat(" = ", node)
-          c(nodeObject, st, "Expression")
-          buffer.concat(")", node)
-          buffer.concat(", ___r" + varScope.receiverLevel, node)
-          buffer.concat(" == null ? ", node)
-          buffer.concat("___r" + varScope.receiverLevel, node)
-          buffer.concat(" : ", node)
-          if (inlineMsgSend)
-            buffer.concat("(", node)
-          buffer.concat("___r" + varScope.receiverLevel, node)
-          if (!(varScope.maxReceiverLevel >= varScope.receiverLevel))
-            varScope.maxReceiverLevel = varScope.receiverLevel
-        }
-        if (inlineMsgSend) {
-          buffer.concat(".isa.method_msgSend[\"", node)
-          buffer.concat(selector, node)
-          buffer.concat("\"] || _objj_forward)", node)
-        } else {
-          buffer.concat(".isa.objj_msgSend", node)
-        }
+        receiverIsNotSelf = true
+        if (!varScope.receiverLevel) varScope.receiverLevel = 0
+        buffer.concat("((___r" + ++varScope.receiverLevel, node)
+        buffer.concat(" = ", node)
+        c(nodeObject, st, "Expression")
+        buffer.concat(")", node)
+        buffer.concat(", ___r" + varScope.receiverLevel, node)
+        buffer.concat(" == null ? ", node)
+        buffer.concat("___r" + varScope.receiverLevel, node)
+        buffer.concat(" : ", node)
+        if (inlineMsgSend)
+          buffer.concat("(", node)
+        buffer.concat("___r" + varScope.receiverLevel, node)
+        if (!(varScope.maxReceiverLevel >= varScope.receiverLevel))
+          varScope.maxReceiverLevel = varScope.receiverLevel
+      }
+      if (inlineMsgSend) {
+        buffer.concat(".isa.method_msgSend[\"", node)
+        buffer.concat(selector, node)
+        buffer.concat("\"] || _objj_forward)", node)
+      } else {
+        buffer.concat(".isa.objj_msgSend", node)
       }
     }
 
-    if (generateObjJ) {
-      for (var i = 0; i < argumentsLength || (argumentsLength === 0 && i === 0); i++) {
-        var selector = selectors[i]
+    let selectorJSPath
 
-        buffer.concat(" ")
-        buffer.concat(selector ? selector.name : "")
-
-        if (argumentsLength > 0) {
-          var argument = nodeArguments[i]
-
-          buffer.concat(":")
-          c(argument, st, "Expression")
+    if (!node.superObject) {
+      if (!inlineMsgSend) {
+        if (totalNoOfParameters < 4) {
+          buffer.concat("" + totalNoOfParameters, node)
         }
       }
 
-      if (parameters) for (var i = 0, size = parameters.length; i < size; ++i) {
-        var parameter = parameters[i]
-
-        buffer.concat(", ")
-        c(parameter, st, "Expression")
+      if (receiverIsIdentifier) {
+        buffer.concat("(", node)
+        c(nodeObject, st, "Expression")
+      } else {
+        buffer.concat("(___r" + varScope.receiverLevel, node)
       }
-      buffer.concat("]")
-    } else {
-      let selectorJSPath
 
-      if (!node.superObject) {
-        if (!inlineMsgSend) {
-          if (totalNoOfParameters < 4) {
-            buffer.concat("" + totalNoOfParameters, node)
-          }
-        }
+      // Only do this if source map is enabled and we have an identifier
+      if (options.sourceMap && nodeObject.type === "Identifier") {
+        // Get target expression for sourcemap to allow hovering selector to show method function. Create new buffer to write in.
+        compiler.jsBuffer = new StringBuffer()
+        c(nodeObject, st, "Expression")
+        let aTarget = compiler.jsBuffer.toString()
+        selectorJSPath = aTarget + ".isa.method_dtable[\"" + selector + "\"]"
+        // Restored buffer so everything will continue as usually.
+        compiler.jsBuffer = buffer
+      }
+    }
 
-        if (receiverIsIdentifier) {
-          buffer.concat("(", node)
-          c(nodeObject, st, "Expression")
-        } else {
-          buffer.concat("(___r" + varScope.receiverLevel, node)
-        }
-
-        // Only do this if source map is enabled and we have an identifier
-        if (options.sourceMap && nodeObject.type === "Identifier") {
-          // Get target expression for sourcemap to allow hovering selector to show method function. Create new buffer to write in.
-          compiler.jsBuffer = new StringBuffer()
-          c(nodeObject, st, "Expression")
-          let aTarget = compiler.jsBuffer.toString()
-          selectorJSPath = aTarget + ".isa.method_dtable[\"" + selector + "\"]"
-          // Restored buffer so everything will continue as usually.
-          compiler.jsBuffer = buffer
+    buffer.concat(", ", node)
+    if (selectorJSPath) {
+      buffer.concat("(", node)
+      for (var i = 0; i < selectors.length; i++) {
+        var nextSelector = selectors[i]
+        if (nextSelector) {
+          buffer.concat(selectorJSPath, nextSelector)
+          buffer.concat(", ", node)
         }
       }
+    }
+    buffer.concat("\"", node)
+
+    buffer.concat(selector, node) // FIXME: sel_getUid(selector + "") ? This FIXME is from the old preprocessor compiler
+    buffer.concat(selectorJSPath ? "\")" : "\"", node)
+
+    if (nodeArguments) for (var i = 0; i < nodeArguments.length; i++) {
+      let argument = nodeArguments[i]
 
       buffer.concat(", ", node)
-      if (selectorJSPath) {
-        buffer.concat("(", node)
-        for (var i = 0; i < selectors.length; i++) {
-          var nextSelector = selectors[i]
-          if (nextSelector) {
-            buffer.concat(selectorJSPath, nextSelector)
-            buffer.concat(", ", node)
-          }
-        }
-      }
-      buffer.concat("\"", node)
-
-      buffer.concat(selector, node) // FIXME: sel_getUid(selector + "") ? This FIXME is from the old preprocessor compiler
-      buffer.concat(selectorJSPath ? "\")" : "\"", node)
-
-      if (nodeArguments) for (var i = 0; i < nodeArguments.length; i++) {
-        var argument = nodeArguments[i]
-
-        buffer.concat(", ", node)
-        c(argument, st, "Expression")
-      }
-
-      if (parameters) for (var i = 0; i < parameters.length; ++i) {
-        var parameter = parameters[i]
-
-        buffer.concat(", ", node)
-        c(parameter, st, "Expression")
-      }
-
-      if (!node.superObject) {
-        if (receiverIsNotSelf)
-          buffer.concat(")", node)
-        if (!receiverIsIdentifier)
-          varScope.receiverLevel--
-      }
-
-      buffer.concat(")", node)
+      c(argument, st, "Expression")
     }
+
+    if (parameters) for (var i = 0; i < parameters.length; ++i) {
+      let parameter = parameters[i]
+
+      buffer.concat(", ", node)
+      c(parameter, st, "Expression")
+    }
+
+    if (!node.superObject) {
+      if (receiverIsNotSelf)
+        buffer.concat(")", node)
+      if (!receiverIsIdentifier)
+        varScope.receiverLevel--
+    }
+
+    buffer.concat(")", node)
   },
   SelectorLiteralExpression: function(node, st, c) {
     let compiler = st.compiler,
-        buffer = compiler.jsBuffer,
-        generateObjJ = compiler.options.generateObjJ
+        buffer = compiler.jsBuffer
 
-    buffer.concat(generateObjJ ? "@selector(" : "sel_getUid(\"", node)
+    buffer.concat("sel_getUid(\"", node)
     buffer.concat(node.selector)
-    buffer.concat(generateObjJ ? ")" : "\")")
+    buffer.concat("\")")
   },
   ProtocolLiteralExpression: function(node, st, c) {
     let compiler = st.compiler,
-        buffer = compiler.jsBuffer,
-        generateObjJ = compiler.options.generateObjJ
+        buffer = compiler.jsBuffer
 
-    buffer.concat(generateObjJ ? "@protocol(" : "objj_getProtocol(\"", node)
+    buffer.concat("objj_getProtocol(\"", node)
     c(node.id, st, "VariablePattern")
-    buffer.concat(generateObjJ ? ")" : "\")")
+    buffer.concat("\")")
   },
   Reference: function(node, st, c) {
     let compiler = st.compiler,
-        buffer = compiler.jsBuffer,
-        generateObjJ = compiler.options.generateObjJ
+        buffer = compiler.jsBuffer
 
-    if (generateObjJ) {
-      buffer.concat("@ref(", node)
-      buffer.concat(node.element.name, node.element)
-      buffer.concat(")", node)
-    } else {
-      buffer.concat("function(__input) { if (arguments.length) return ", node)
-      c(node.element, st, "Expression")
-      buffer.concat(" = __input; return ")
-      c(node.element, st, "Expression")
-      buffer.concat("; }")
-    }
+    buffer.concat("function(__input) { if (arguments.length) return ", node)
+    c(node.element, st, "Expression")
+    buffer.concat(" = __input; return ")
+    c(node.element, st, "Expression")
+    buffer.concat("; }")
   },
   Dereference: function(node, st, c) {
     let compiler = st.compiler,
-        buffer = compiler.jsBuffer,
-        generateObjJ = compiler.options.generateObjJ
+        buffer = compiler.jsBuffer
 
     checkCanDereference(st, node.expr)
 
     // @deref(y) -> y()
     // @deref(@deref(y)) -> y()()
-    if (generateObjJ)
-      buffer.concat("@deref(")
     c(node.expr, st, "Expression")
-    if (generateObjJ)
-      buffer.concat(")")
-    else
-      buffer.concat("()")
+    buffer.concat("()")
   },
   ClassStatement: function(node, st, c) {
     let compiler = st.compiler,
-        buffer = compiler.jsBuffer,
-        generateObjJ = compiler.options.generateObjJ
-    if (generateObjJ) {
-      buffer.concat("@class ")
-      c(node.id, st, "VariablePattern")
-    }
+        buffer = compiler.jsBuffer
     let className = node.id.name
 
     if (compiler.getTypeDef(className))
@@ -2492,12 +2292,7 @@ pass2 = walk.make({
   },
   GlobalStatement: function(node, st, c) {
     let compiler = st.compiler,
-        buffer = compiler.jsBuffer,
-        generateObjJ = compiler.options.generateObjJ
-    if (generateObjJ) {
-      buffer.concat("@global ")
-      c(node.id, st, "VariablePattern")
-    }
+        buffer = compiler.jsBuffer
     st.rootScope().vars[node.id.name] = {type: "global", node: node.id}
   },
   PreprocessStatement: function(node, st, c) {
