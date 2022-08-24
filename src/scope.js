@@ -1,10 +1,10 @@
-import {warningUnusedButSetVariable, createMessage} from "./warning.js"
+import { warningUnusedButSetVariable, createMessage } from './warning.js'
 
 export class Scope {
-  constructor(prev, base) {
+  constructor (prev, base) {
     this.vars = Object.create(null)
 
-    if (base) for (let key in base) this[key] = base[key]
+    if (base) for (const key in base) this[key] = base[key]
     this.prev = prev
 
     if (prev) {
@@ -19,141 +19,136 @@ export class Scope {
     }
   }
 
-  toString() {
-    return this.ivars ? "ivars: " + JSON.stringify(this.ivars) : "<No ivars>"
+  toString () {
+    return this.ivars ? 'ivars: ' + JSON.stringify(this.ivars) : '<No ivars>'
   }
 
-  compiler() {
+  compiler () {
     return this.compiler
   }
 
-  rootScope() {
+  rootScope () {
     return this.prev ? this.prev.rootScope() : this
   }
 
-  isRootScope() {
+  isRootScope () {
     return !this.prev
   }
 
-  currentClassName() {
+  currentClassName () {
     return this.classDef ? this.classDef.name : this.prev ? this.prev.currentClassName() : null
   }
 
-  currentProtocolName() {
+  currentProtocolName () {
     return this.protocolDef ? this.protocolDef.name : this.prev ? this.prev.currentProtocolName() : null
   }
 
-  getIvarForCurrentClass(/* String */ ivarName) {
+  getIvarForCurrentClass (/* String */ ivarName) {
     if (this.ivars) {
-      let ivar = this.ivars[ivarName]
-      if (ivar)
-        return ivar
+      const ivar = this.ivars[ivarName]
+      if (ivar) { return ivar }
     }
 
-    let prev = this.prev
+    const prev = this.prev
 
     // Stop at the class declaration
-    if (prev && !this.classDef)
-      return prev.getIvarForCurrentClass(ivarName)
+    if (prev && !this.classDef) { return prev.getIvarForCurrentClass(ivarName) }
 
     return null
   }
 
-  getLvarScope(/* String */ lvarName, /* BOOL */ stopAtMethod) {
+  getLvarScope (/* String */ lvarName, /* BOOL */ stopAtMethod) {
     if (this.vars) {
-      let lvar = this.vars[lvarName]
-      if (lvar)
-        return this
+      const lvar = this.vars[lvarName]
+      if (lvar) { return this }
     }
 
-    let prev = this.prev
+    const prev = this.prev
 
     // Stop at the method declaration
-    if (prev && (!stopAtMethod || !this.methodType))
-      return prev.getLvarScope(lvarName, stopAtMethod)
+    if (prev && (!stopAtMethod || !this.methodType)) { return prev.getLvarScope(lvarName, stopAtMethod) }
 
     return this
   }
 
-  getLvar(/* String */ lvarName, /* BOOL */ stopAtMethod) {
+  getLvar (/* String */ lvarName, /* BOOL */ stopAtMethod) {
     if (this.vars) {
-      let lvar = this.vars[lvarName]
-      if (lvar)
-        return lvar
+      const lvar = this.vars[lvarName]
+      if (lvar) { return lvar }
     }
 
-    let prev = this.prev
+    const prev = this.prev
 
     // Stop at the method declaration
-    if (prev && (!stopAtMethod || !this.methodType))
-      return prev.getLvar(lvarName, stopAtMethod)
+    if (prev && (!stopAtMethod || !this.methodType)) { return prev.getLvar(lvarName, stopAtMethod) }
 
     return null
   }
 
-  getVarScope() {
-    let prev = this.prev
+  getVarScope () {
+    const prev = this.prev
 
     return prev ? prev.getVarScope() : this
   }
 
-  currentMethodType() {
+  currentMethodType () {
     return this.methodType ? this.methodType : this.prev ? this.prev.currentMethodType() : null
   }
 
-  copyAddedSelfToIvarsToParent() {
-    if (this.prev && this.addedSelfToIvars) for (let key in this.addedSelfToIvars) {
-      let addedSelfToIvar = this.addedSelfToIvars[key],
-          scopeAddedSelfToIvar = (this.prev.addedSelfToIvars || (this.prev.addedSelfToIvars = Object.create(null)))[key] || (this.prev.addedSelfToIvars[key] = [])
+  copyAddedSelfToIvarsToParent () {
+    if (this.prev && this.addedSelfToIvars) {
+      for (const key in this.addedSelfToIvars) {
+        const addedSelfToIvar = this.addedSelfToIvars[key]
+        const scopeAddedSelfToIvar = (this.prev.addedSelfToIvars || (this.prev.addedSelfToIvars = Object.create(null)))[key] || (this.prev.addedSelfToIvars[key] = [])
 
-      scopeAddedSelfToIvar.push.apply(scopeAddedSelfToIvar, addedSelfToIvar) // Append at end in parent scope
-    }
-  }
-
-  addMaybeWarning(warning) {
-    let rootScope = this.rootScope(),
-        maybeWarnings = rootScope._maybeWarnings
-
-    if (!maybeWarnings)
-      rootScope._maybeWarnings = maybeWarnings = [warning]
-    else {
-      let lastWarning = maybeWarnings[maybeWarnings.length - 1]
-
-      // MessageSendExpression (and maybe others) will walk some expressions multible times and
-      // possible generate warnings multible times. Here we check if this warning is already added
-      if (!lastWarning.isEqualTo(warning))
-        maybeWarnings.push(warning)
-    }
-  }
-
-  variablesNotReadWarnings() {
-    let compiler = this.compiler
-
-    // The warning option must be turned on. We can't be top scope. The scope must have some variables
-    if (compiler.options.warnings.includes(warningUnusedButSetVariable) && this.prev && this.vars) for (let key in this.vars) {
-      let lvar = this.vars[key]
-
-      if (!lvar.isRead && (lvar.type === "var" || lvar.type === "let" || lvar.type === "const")) {
-        // print("Variable '" + key + "' is never read: " + lvar.type + ", line: " + lvar.node.start);
-        compiler.addWarning(createMessage("Variable '" + key + "' is never read", lvar.node, compiler.source))
+        scopeAddedSelfToIvar.push.apply(scopeAddedSelfToIvar, addedSelfToIvar) // Append at end in parent scope
       }
     }
   }
 
-  maybeWarnings() {
+  addMaybeWarning (warning) {
+    const rootScope = this.rootScope()
+    let maybeWarnings = rootScope._maybeWarnings
+
+    if (!maybeWarnings) { rootScope._maybeWarnings = maybeWarnings = [warning] } else {
+      const lastWarning = maybeWarnings[maybeWarnings.length - 1]
+
+      // MessageSendExpression (and maybe others) will walk some expressions multible times and
+      // possible generate warnings multible times. Here we check if this warning is already added
+      if (!lastWarning.isEqualTo(warning)) { maybeWarnings.push(warning) }
+    }
+  }
+
+  variablesNotReadWarnings () {
+    const compiler = this.compiler
+
+    // The warning option must be turned on. We can't be top scope. The scope must have some variables
+    if (compiler.options.warnings.includes(warningUnusedButSetVariable) && this.prev && this.vars) {
+      for (const key in this.vars) {
+        const lvar = this.vars[key]
+
+        if (!lvar.isRead && (lvar.type === 'var' || lvar.type === 'let' || lvar.type === 'const')) {
+        // print("Variable '" + key + "' is never read: " + lvar.type + ", line: " + lvar.node.start);
+          compiler.addWarning(createMessage("Variable '" + key + "' is never read", lvar.node, compiler.source))
+        }
+      }
+    }
+  }
+
+  maybeWarnings () {
     return this.rootScope()._maybeWarnings
   }
 
-  pushNode(node, overrideType) {
+  pushNode (node, overrideType) {
     // Here we push 3 things to a stack. The node, override type and an array that can keep track of prior nodes on this level.
     // The current node is also pushed to the last prior array.
     // Special case when node is the same as the parent node. This happends when using an override type when walking the AST
     // The same prior list is then used instead of a new empty one.
-    let nodePriorStack = this.nodePriorStack,
-        length = nodePriorStack.length,
-        lastPriorList = length ? nodePriorStack[length - 1] : null,
-        lastNode = length ? this.nodeStack[length - 1] : null
-        // First add this node to parent list of nodes, if it has one
+    const nodePriorStack = this.nodePriorStack
+    const length = nodePriorStack.length
+    const lastPriorList = length ? nodePriorStack[length - 1] : null
+    const lastNode = length ? this.nodeStack[length - 1] : null
+    // First add this node to parent list of nodes, if it has one
     if (lastPriorList) {
       if (lastNode !== node) {
         // If not the same node push the node
@@ -166,52 +161,51 @@ export class Scope {
     this.nodeStackOverrideType.push(overrideType)
   }
 
-  popNode() {
+  popNode () {
     this.nodeStackOverrideType.pop()
     this.nodePriorStack.pop()
     return this.nodeStack.pop()
   }
 
-  currentNode() {
-    let nodeStack = this.nodeStack
+  currentNode () {
+    const nodeStack = this.nodeStack
     return nodeStack[nodeStack.length - 1]
   }
 
-  currentOverrideType() {
-    let nodeStackOverrideType = this.nodeStackOverrideType
+  currentOverrideType () {
+    const nodeStackOverrideType = this.nodeStackOverrideType
     return nodeStackOverrideType[nodeStackOverrideType.length - 1]
   }
 
-  priorNode() {
-    let nodePriorStack = this.nodePriorStack,
-        length = nodePriorStack.length
+  priorNode () {
+    const nodePriorStack = this.nodePriorStack
+    const length = nodePriorStack.length
 
     if (length > 1) {
-      let parent = nodePriorStack[length - 2],
-          l = parent.length
+      const parent = nodePriorStack[length - 2]
+      const l = parent.length
       return parent[l - 2] || null
     }
     return null
   }
 
-  formatDescription(index, formatDescription, useOverrideForNode) {
-    let nodeStack = this.nodeStack,
-        length = nodeStack.length
+  formatDescription (index, formatDescription, useOverrideForNode) {
+    const nodeStack = this.nodeStack
+    const length = nodeStack.length
 
     index = index || 0
-    if (index >= length)
-      return null
+    if (index >= length) { return null }
 
     // Get the nodes backwards from the stack
-    let i = length - index - 1
-    let currentNode = nodeStack[i]
-    let currentFormatDescription = formatDescription || this.compiler.formatDescription
+    const i = length - index - 1
+    const currentNode = nodeStack[i]
+    const currentFormatDescription = formatDescription || this.compiler.formatDescription
     // Get the parent descriptions except if no formatDescription was provided, then it is the root description
-    let parentFormatDescriptions = formatDescription ? formatDescription.parent : currentFormatDescription
+    const parentFormatDescriptions = formatDescription ? formatDescription.parent : currentFormatDescription
 
     let nextFormatDescription
     if (parentFormatDescriptions) {
-      let nodeType = useOverrideForNode === currentNode ? this.nodeStackOverrideType[i] : currentNode.type
+      const nodeType = useOverrideForNode === currentNode ? this.nodeStackOverrideType[i] : currentNode.type
       // console.log("nodeType: " + nodeType + ", (useOverrideForNode === currentNode):" +  + !!(useOverrideForNode === currentNode));
       nextFormatDescription = parentFormatDescriptions[nodeType]
       if (useOverrideForNode === currentNode && !nextFormatDescription) {
@@ -228,17 +222,14 @@ export class Scope {
     } else {
       // Check for a virtual node one step up in the stack
       nextFormatDescription = this.formatDescription(index + 1, formatDescription, currentNode)
-      if (nextFormatDescription)
-        return nextFormatDescription
-      else {
+      if (nextFormatDescription) { return nextFormatDescription } else {
         // Ok, we have found a format description (currentFormatDescription).
         // Lets check if we have any other descriptions dependent on the prior node.
-        let priorFormatDescriptions = currentFormatDescription.prior
+        const priorFormatDescriptions = currentFormatDescription.prior
         if (priorFormatDescriptions) {
-          let priorNode = this.priorNode(),
-              priorFormatDescription = priorFormatDescriptions[priorNode ? priorNode.type : "None"]
-          if (priorFormatDescription)
-            return priorFormatDescription
+          const priorNode = this.priorNode()
+          const priorFormatDescription = priorFormatDescriptions[priorNode ? priorNode.type : 'None']
+          if (priorFormatDescription) { return priorFormatDescription }
         }
         return currentFormatDescription
       }
@@ -247,26 +238,28 @@ export class Scope {
 }
 
 export class BlockScope extends Scope {
-  variablesNotReadWarnings() {
+  variablesNotReadWarnings () {
     Scope.prototype.variablesNotReadWarnings.call(this)
 
-    let prev = this.prev
+    const prev = this.prev
 
     // Any possible hoisted variable in this scope has to be moved to the previous scope if it is not declared in the previsous scope
     // We can't be top scope. The scope must have some possible hoisted variables
-    if (prev && this.possibleHoistedVariables) for (let key in this.possibleHoistedVariables) {
-      let possibleHoistedVariable = this.possibleHoistedVariables[key]
+    if (prev && this.possibleHoistedVariables) {
+      for (const key in this.possibleHoistedVariables) {
+        const possibleHoistedVariable = this.possibleHoistedVariables[key]
 
-      if (possibleHoistedVariable) {
-        let varInPrevScope = prev.vars && prev.vars[key]
+        if (possibleHoistedVariable) {
+          const varInPrevScope = prev.vars && prev.vars[key]
 
-        if (varInPrevScope != null) {
-          let prevPossibleHoistedVariable = (prev.possibleHoistedVariables || (prev.possibleHoistedVariables = Object.create(null)))[key]
+          if (varInPrevScope != null) {
+            const prevPossibleHoistedVariable = (prev.possibleHoistedVariables || (prev.possibleHoistedVariables = Object.create(null)))[key]
 
-          if (prevPossibleHoistedVariable == null) {
-            prev.possibleHoistedVariables[key] = possibleHoistedVariable
-          } else {
-            throw new Error("Internal inconsistency, previous scope should not have this possible hoisted variable '" + key + "'")
+            if (prevPossibleHoistedVariable == null) {
+              prev.possibleHoistedVariables[key] = possibleHoistedVariable
+            } else {
+              throw new Error("Internal inconsistency, previous scope should not have this possible hoisted variable '" + key + "'")
+            }
           }
         }
       }
@@ -275,7 +268,7 @@ export class BlockScope extends Scope {
 }
 
 export class FunctionScope extends BlockScope {
-  getVarScope() {
+  getVarScope () {
     return this
   }
 }

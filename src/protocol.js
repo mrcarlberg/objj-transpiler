@@ -4,64 +4,58 @@
 // protocolDef = {"name": aProtocolName, "protocols": inheritFromProtocols, "requiredInstanceMethods": requiredInstanceMethodDefs, "requiredClassMethods": requiredClassMethodDefs};
 
 export class ProtocolDef {
-  constructor(name, protocols, requiredInstanceMethodDefs, requiredClassMethodDefs) {
+  constructor (name, protocols, requiredInstanceMethodDefs, requiredClassMethodDefs) {
     this.name = name
     this.protocols = protocols
-    if (requiredInstanceMethodDefs)
-      this.requiredInstanceMethods = requiredInstanceMethodDefs
-    if (requiredClassMethodDefs)
-      this.requiredClassMethods = requiredClassMethodDefs
+    if (requiredInstanceMethodDefs) { this.requiredInstanceMethods = requiredInstanceMethodDefs }
+    if (requiredClassMethodDefs) { this.requiredClassMethods = requiredClassMethodDefs }
   }
 
-  addInstanceMethod = function(methodDef) {
+  addInstanceMethod = function (methodDef) {
     (this.requiredInstanceMethods || (this.requiredInstanceMethods = Object.create(null)))[methodDef.name] = methodDef
   }
 
-  addClassMethod = function(methodDef) {
+  addClassMethod = function (methodDef) {
     (this.requiredClassMethods || (this.requiredClassMethods = Object.create(null)))[methodDef.name] = methodDef
   }
 
-  getInstanceMethod = function(name) {
-    let instanceMethods = this.requiredInstanceMethods
+  getInstanceMethod = function (name) {
+    const instanceMethods = this.requiredInstanceMethods
 
     if (instanceMethods) {
-      var method = instanceMethods[name]
+      const method = instanceMethods[name]
 
-      if (method)
-        return method
+      if (method) { return method }
     }
 
-    let protocols = this.protocols
+    const protocols = this.protocols
 
     for (let i = 0, size = protocols.length; i < size; i++) {
-      var protocol = protocols[i],
-          method = protocol.getInstanceMethod(name)
+      const protocol = protocols[i]
+      const method = protocol.getInstanceMethod(name)
 
-      if (method)
-        return method
+      if (method) { return method }
     }
 
     return null
   }
 
-  getClassMethod = function(name) {
-    let classMethods = this.requiredClassMethods
+  getClassMethod = function (name) {
+    const classMethods = this.requiredClassMethods
 
     if (classMethods) {
-      var method = classMethods[name]
+      const method = classMethods[name]
 
-      if (method)
-        return method
+      if (method) { return method }
     }
 
-    let protocols = this.protocols
+    const protocols = this.protocols
 
     for (let i = 0, size = protocols.length; i < size; i++) {
-      var protocol = protocols[i],
-          method = protocol.getClassMethod(name)
+      const protocol = protocols[i]
+      const method = protocol.getClassMethod(name)
 
-      if (method)
-        return method
+      if (method) { return method }
     }
 
     return null

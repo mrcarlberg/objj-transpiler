@@ -13,22 +13,23 @@
 //
 // Copyright 2013, 2014, 2015, 2016, Martin Carlberg.
 
-//"use strict"
+// "use strict"
 
-import * as objjParser from "objj-parser"
+import * as objjParser from 'objj-parser'
 
-import {Scope, FunctionScope} from "./scope.js"
-import {StringBuffer} from "./buffer.js"
-import {defaultOptions, setupOptions} from "./options.js"
-import {pass2, pass1} from "./walk.js"
-import {TypeDef, MethodDef} from "./definition.js"
-import {ClassDef} from "./class-def.js"
-import {ProtocolDef} from "./protocol.js"
+import { Scope } from './scope.js'
+import { StringBuffer } from './buffer.js'
+import { defaultOptions, setupOptions } from './options.js'
+import { pass2, pass1 } from './walk.js'
+import { TypeDef, MethodDef } from './definition.js'
+import { ClassDef } from './class-def.js'
+import { ProtocolDef } from './protocol.js'
+import { AllWarnings } from './warning.js'
 
-export const version = "0.3.7"
+export const version = '0.3.7'
 
 export class ObjJAcornCompiler {
-  constructor(/* String */ aString, /* CFURL */ aURL, options) {
+  constructor (/* String */ aString, /* CFURL */ aURL, options) {
     this.source = aString
     this.URL = aURL && aURL.toString()
     options = setupOptions(options)
@@ -49,11 +50,11 @@ export class ObjJAcornCompiler {
     this.warningsAndErrors = []
     this.lastPos = 0
 
-    this.indentType = " "
+    this.indentType = ' '
     this.indentationSpaces = 4
     this.indentationSize = this.indentationSpaces * this.indentType.length
     this.indentStep = Array(this.indentationSpaces + 1).join(this.indentType)
-    this.indentation = ""
+    this.indentation = ''
 
     // this.formatDescription = {
     //    Identifier: {before:"<before>", after:"<after>", parent: {ReturnStatement: {after:"<AFTER>", before:"<BEFORE>"}, Statement: {after:"<After>", before:"<Before>"}}},
@@ -64,26 +65,20 @@ export class ObjJAcornCompiler {
     let acornOptions = options.acornOptions
 
     if (acornOptions) {
-      if (this.URL)
-        acornOptions.sourceFile = this.URL.substr(this.URL.lastIndexOf("/") + 1)
-      if (options.sourceMap && !acornOptions.locations)
-        acornOptions.locations = true
+      if (this.URL) { acornOptions.sourceFile = this.URL.substr(this.URL.lastIndexOf('/') + 1) }
+      if (options.sourceMap && !acornOptions.locations) { acornOptions.locations = true }
     } else {
-      acornOptions = options.acornOptions = this.URL && {sourceFile: this.URL.substr(this.URL.lastIndexOf("/") + 1)}
-      if (options.sourceMap)
-        acornOptions.locations = true
+      acornOptions = options.acornOptions = this.URL && { sourceFile: this.URL.substr(this.URL.lastIndexOf('/') + 1) }
+      if (options.sourceMap) { acornOptions.locations = true }
     }
 
     if (options.macros) {
-      if (acornOptions.macros)
-        acornOptions.macros.concat(options.macros)
-      else
-        acornOptions.macros = options.macros
+      if (acornOptions.macros) { acornOptions.macros.concat(options.macros) } else { acornOptions.macros = options.macros }
     }
 
     try {
       this.tokens = objjParser.parse(aString, options.acornOptions)
-      this.compile(this.tokens, new Scope(null, {compiler: this}), this.pass === 2 ? pass2 : pass1)
+      this.compile(this.tokens, new Scope(null, { compiler: this }), this.pass === 2 ? pass2 : pass1)
     } catch (e) {
       if (e.lineStart != null) {
         e.messageForLine = aString.substring(e.lineStart, e.lineEnd)
@@ -95,9 +90,9 @@ export class ObjJAcornCompiler {
     this.setCompiledCode(this.jsBuffer)
   }
 
-  setCompiledCode(stringBuffer) {
+  setCompiledCode (stringBuffer) {
     if (this.createSourceMap) {
-      let s = stringBuffer.toString()
+      const s = stringBuffer.toString()
       this.compiledCode = s.code
       this.sourceMap = s.map
     } else {
@@ -105,8 +100,8 @@ export class ObjJAcornCompiler {
     }
   }
 
-  compilePass2() {
-    let options = this.options
+  compilePass2 () {
+    const options = this.options
 
     exports.currentCompileFile = this.URL
     this.pass = options.pass = 2
@@ -114,12 +109,11 @@ export class ObjJAcornCompiler {
 
     // To get the source mapping correct when the new Function construtor is used we add a
     // new line as first thing in the code.
-    if (this.createSourceMap)
-      this.jsBuffer.concat("\n\n")
+    if (this.createSourceMap) { this.jsBuffer.concat('\n\n') }
 
     this.warningsAndErrors = []
     try {
-      this.compile(this.tokens, new Scope(null, {compiler: this}), pass2)
+      this.compile(this.tokens, new Scope(null, { compiler: this }), pass2)
     } catch (e) {
       this.addWarning(e)
       return null
@@ -133,62 +127,59 @@ export class ObjJAcornCompiler {
   /*!
         Add warning or error to the list
      */
-  addWarning(/* Warning */ aWarning) {
-    if (aWarning.path == null)
-      aWarning.path = this.URL
+  addWarning (/* Warning */ aWarning) {
+    if (aWarning.path == null) { aWarning.path = this.URL }
 
     this.warningsAndErrors.push(aWarning)
   }
 
-  getIvarForClass(/* String */ ivarName, /* Scope */ scope) {
-    let ivar = scope.getIvarForCurrentClass(ivarName)
+  getIvarForClass (/* String */ ivarName, /* Scope */ scope) {
+    const ivar = scope.getIvarForCurrentClass(ivarName)
 
-    if (ivar)
-      return ivar
+    if (ivar) { return ivar }
 
     let c = this.getClassDef(scope.currentClassName())
 
     while (c) {
-      let ivars = c.ivars
+      const ivars = c.ivars
       if (ivars) {
-        let ivarDef = ivars[ivarName]
-        if (ivarDef)
-          return ivarDef
+        const ivarDef = ivars[ivarName]
+        if (ivarDef) { return ivarDef }
       }
       c = c.superClass
     }
   }
 
-  getClassDef(/* String */ aClassName) {
+  getClassDef (/* String */ aClassName) {
     if (!aClassName) return null
 
     let c = this.classDefs[aClassName]
 
     if (c) return c
 
-    if (typeof objj_getClass === "function") {
-      let aClass = objj_getClass(aClassName)
+    if (typeof objj_getClass === 'function') {
+      const aClass = objj_getClass(aClassName)
       if (aClass) {
-        let ivars = class_copyIvarList(aClass),
-            ivarSize = ivars.length,
-            myIvars = Object.create(null),
-            protocols = class_copyProtocolList(aClass),
-            protocolSize = protocols.length,
-            myProtocols = Object.create(null),
-            instanceMethodDefs = ObjJAcornCompiler.methodDefsFromMethodList(class_copyMethodList(aClass)),
-            classMethodDefs = ObjJAcornCompiler.methodDefsFromMethodList(class_copyMethodList(aClass.isa)),
-            superClass = class_getSuperclass(aClass)
+        const ivars = class_copyIvarList(aClass)
+        const ivarSize = ivars.length
+        const myIvars = Object.create(null)
+        const protocols = class_copyProtocolList(aClass)
+        const protocolSize = protocols.length
+        const myProtocols = Object.create(null)
+        const instanceMethodDefs = ObjJAcornCompiler.methodDefsFromMethodList(class_copyMethodList(aClass))
+        const classMethodDefs = ObjJAcornCompiler.methodDefsFromMethodList(class_copyMethodList(aClass.isa))
+        const superClass = class_getSuperclass(aClass)
 
-        for (var i = 0; i < ivarSize; i++) {
-          let ivar = ivars[i]
+        for (let i = 0; i < ivarSize; i++) {
+          const ivar = ivars[i]
 
-          myIvars[ivar.name] = {type: ivar.type, name: ivar.name}
+          myIvars[ivar.name] = { type: ivar.type, name: ivar.name }
         }
 
-        for (var i = 0; i < protocolSize; i++) {
-          let protocol = protocols[i],
-              protocolName = protocol_getName(protocol),
-              protocolDef = this.getProtocolDef(protocolName)
+        for (let i = 0; i < protocolSize; i++) {
+          const protocol = protocols[i]
+          const protocolName = protocol_getName(protocol)
+          const protocolDef = this.getProtocolDef(protocolName)
 
           myProtocols[protocolName] = protocolDef
         }
@@ -202,27 +193,27 @@ export class ObjJAcornCompiler {
     return null
   }
 
-  getProtocolDef(/* String */ aProtocolName) {
+  getProtocolDef (/* String */ aProtocolName) {
     if (!aProtocolName) return null
 
     let p = this.protocolDefs[aProtocolName]
 
     if (p) return p
 
-    if (typeof objj_getProtocol === "function") {
-      let aProtocol = objj_getProtocol(aProtocolName)
+    if (typeof objj_getProtocol === 'function') {
+      const aProtocol = objj_getProtocol(aProtocolName)
       if (aProtocol) {
-        let protocolName = protocol_getName(aProtocol),
-            requiredInstanceMethods = protocol_copyMethodDescriptionList(aProtocol, true, true),
-            requiredInstanceMethodDefs = ObjJAcornCompiler.methodDefsFromMethodList(requiredInstanceMethods),
-            requiredClassMethods = protocol_copyMethodDescriptionList(aProtocol, true, false),
-            requiredClassMethodDefs = ObjJAcornCompiler.methodDefsFromMethodList(requiredClassMethods),
-            protocols = aProtocol.protocols,
-            inheritFromProtocols = []
+        const protocolName = protocol_getName(aProtocol)
+        const requiredInstanceMethods = protocol_copyMethodDescriptionList(aProtocol, true, true)
+        const requiredInstanceMethodDefs = ObjJAcornCompiler.methodDefsFromMethodList(requiredInstanceMethods)
+        const requiredClassMethods = protocol_copyMethodDescriptionList(aProtocol, true, false)
+        const requiredClassMethodDefs = ObjJAcornCompiler.methodDefsFromMethodList(requiredClassMethods)
+        const protocols = aProtocol.protocols
+        const inheritFromProtocols = []
 
-        if (protocols)
-          for (let i = 0, size = protocols.length; i < size; i++)
-            inheritFromProtocols.push(compiler.getProtocolDef(protocols[i].name))
+        if (protocols) {
+          for (let i = 0, size = protocols.length; i < size; i++) { inheritFromProtocols.push(this.getProtocolDef(protocols[i].name)) }
+        }
 
         p = new ProtocolDef(protocolName, inheritFromProtocols, requiredInstanceMethodDefs, requiredClassMethodDefs)
 
@@ -235,19 +226,17 @@ export class ObjJAcornCompiler {
     //  protocolDef = {"name": protocolName, "protocols": Object.create(null), "required": Object.create(null), "optional": Object.create(null)};
   }
 
-  getTypeDef(/* String */ aTypeDefName) {
-    if (!aTypeDefName)
-      return null
+  getTypeDef (/* String */ aTypeDefName) {
+    if (!aTypeDefName) { return null }
 
     let t = this.typeDefs[aTypeDefName]
 
-    if (t)
-      return t
+    if (t) { return t }
 
-    if (typeof objj_getTypeDef === "function") {
-      let aTypeDef = objj_getTypeDef(aTypeDefName)
+    if (typeof objj_getTypeDef === 'function') {
+      const aTypeDef = objj_getTypeDef(aTypeDefName)
       if (aTypeDef) {
-        let typeDefName = typeDef_getName(aTypeDef)
+        const typeDefName = typeDef_getName(aTypeDef)
         t = new TypeDef(typeDefName)
         this.typeDefs[typeDefName] = t
         return t
@@ -258,71 +247,70 @@ export class ObjJAcornCompiler {
   }
 
   // FIXME: Does not work anymore
-  executable() {
-    if (!this._executable)
-      this._executable = new Executable(this.jsBuffer ? this.jsBuffer.toString() : null, this.dependencies, this.URL, null, this)
+  executable () {
+    if (!this._executable) { this._executable = new Executable(this.jsBuffer ? this.jsBuffer.toString() : null, this.dependencies, this.URL, null, this) }
     return this._executable
   }
 
-  IMBuffer() {
+  IMBuffer () {
     return this.imBuffer
   }
 
-  code() {
+  code () {
     return this.compiledCode
   }
 
-  ast() {
-    return JSON.stringify(this.tokens, null, indentationSpaces)
+  ast () {
+    return JSON.stringify(this.tokens, null, this.indentationSpaces)
   }
 
-  map() {
+  map () {
     return JSON.stringify(this.sourceMap)
   }
 
-  prettifyMessage(/* Message */ aMessage) {
-    let line = aMessage.messageForLine,
-        message = "\n" + (line || "")
+  prettifyMessage (/* Message */ aMessage) {
+    const line = aMessage.messageForLine
+    let message = '\n' + (line || '')
 
     // Handle if line does not end with a new line
-    if (!message.endsWith("\n")) message += "\n"
+    if (!message.endsWith('\n')) message += '\n'
     if (line) {
       // Add spaces all the way to the column with the error/warning and mark it with a '^'
-      message += (new Array((aMessage.messageOnColumn || 0) + 1)).join(" ")
-      message += (new Array(Math.min(1, line.length || 1) + 1)).join("^") + "\n"
+      message += (new Array((aMessage.messageOnColumn || 0) + 1)).join(' ')
+      message += (new Array(Math.min(1, line.length || 1) + 1)).join('^') + '\n'
     }
-    message += (aMessage.messageType || "ERROR") + " line " + (aMessage.messageOnLine || aMessage.line) + " in " + this.URL + ":" + aMessage.messageOnLine + ": " + aMessage.message
+    message += (aMessage.messageType || 'ERROR') + ' line ' + (aMessage.messageOnLine || aMessage.line) + ' in ' + this.URL + ':' + aMessage.messageOnLine + ': ' + aMessage.message
 
     return message
   }
 
-  error_message(errorMessage, node) {
-    let pos = objjParser.getLineInfo(this.source, node.start),
-        syntaxError = new SyntaxError(errorMessage)
+  error_message (errorMessage, node) {
+    const pos = objjParser.getLineInfo(this.source, node.start)
+    const syntaxError = new SyntaxError(errorMessage)
 
     syntaxError.messageOnLine = pos.line
     syntaxError.messageOnColumn = pos.column
     syntaxError.path = this.URL
     syntaxError.messageForNode = node
-    syntaxError.messageType = "ERROR"
+    syntaxError.messageType = 'ERROR'
     syntaxError.messageForLine = this.source.substring(pos.lineStart, pos.lineEnd)
 
     return syntaxError
   }
 
-  pushImport(url) {
+  pushImport (url) {
     if (!ObjJAcornCompiler.importStack) ObjJAcornCompiler.importStack = [] // This is used to keep track of imports. Each time the compiler imports a file the url is pushed here.
 
     ObjJAcornCompiler.importStack.push(url)
   }
 
-  popImport() {
+  popImport () {
     ObjJAcornCompiler.importStack.pop()
   }
 
-  compile(node, state, visitor) {
-    function c(node, st, override) {
-      if (typeof visitor[override || node.type] !== "function") {
+  compile (node, state, visitor) {
+    function c (node, st, override) {
+      if (typeof visitor[override || node.type] !== 'function') {
         console.log(node.type)
         console.log(override)
         console.log(Object.keys(visitor))
@@ -332,31 +320,27 @@ export class ObjJAcornCompiler {
     c(node, state)
   }
 
-  compileWithFormat(node, state, visitor) {
+  compileWithFormat (node, state, visitor) {
     let lastNode, lastComment
-    function c(node, st, override) {
-      let compiler = st.compiler,
-          includeComments = compiler.includeComments,
-          localLastNode = lastNode,
-          sameNode = localLastNode === node
+    function c (node, st, override) {
+      const compiler = st.compiler
+      const includeComments = compiler.includeComments
+      const localLastNode = lastNode
+      const sameNode = localLastNode === node
       // console.log(override || node.type);
       lastNode = node
       if (includeComments && !sameNode && node.commentsBefore && node.commentsBefore !== lastComment) {
-        for (var i = 0; i < node.commentsBefore.length; i++)
-          compiler.jsBuffer.concat(node.commentsBefore[i])
+        for (let i = 0; i < node.commentsBefore.length; i++) { compiler.jsBuffer.concat(node.commentsBefore[i]) }
       }
       st.pushNode(node, override)
-      let formatDescription = st.formatDescription()
+      const formatDescription = st.formatDescription()
       // console.log("formatDescription: " + JSON.stringify(formatDescription) + ", node.type: " + node.type + ", override: " + override);
-      if (!sameNode && formatDescription && formatDescription.before)
-        compiler.jsBuffer.concatFormat(formatDescription.before)
+      if (!sameNode && formatDescription && formatDescription.before) { compiler.jsBuffer.concatFormat(formatDescription.before) }
       visitor[override || node.type](node, st, c, formatDescription)
-      if (!sameNode && formatDescription && formatDescription.after)
-        compiler.jsBuffer.concatFormat(formatDescription.after)
+      if (!sameNode && formatDescription && formatDescription.after) { compiler.jsBuffer.concatFormat(formatDescription.after) }
       st.popNode()
       if (includeComments && !sameNode && node.commentsAfter) {
-        for (var i = 0; i < node.commentsAfter.length; i++)
-          compiler.jsBuffer.concat(node.commentsAfter[i])
+        for (let i = 0; i < node.commentsAfter.length; i++) { compiler.jsBuffer.concat(node.commentsAfter[i]) }
         lastComment = node.commentsAfter
       } else {
         lastComment = null
@@ -366,13 +350,13 @@ export class ObjJAcornCompiler {
   }
 }
 
-ObjJAcornCompiler.methodDefsFromMethodList = function(/* Array */ methodList) {
-  let methodSize = methodList.length,
-      myMethods = Object.create(null)
+ObjJAcornCompiler.methodDefsFromMethodList = function (/* Array */ methodList) {
+  const methodSize = methodList.length
+  const myMethods = Object.create(null)
 
   for (let i = 0; i < methodSize; i++) {
-    let method = methodList[i],
-        methodName = method_getName(method)
+    const method = methodList[i]
+    const methodName = method_getName(method)
 
     myMethods[methodName] = new MethodDef(methodName, method.types)
   }
@@ -383,44 +367,39 @@ ObjJAcornCompiler.methodDefsFromMethodList = function(/* Array */ methodList) {
 /*!
     Return a parsed option dictionary
  */
-export function parseGccCompilerFlags(/* String */ compilerFlags) {
-  let args = (compilerFlags || "").split(" "),
-      count = args.length,
-      objjcFlags = {}
+export function parseGccCompilerFlags (/* String */ compilerFlags) {
+  const args = (compilerFlags || '').split(' ')
+  const count = args.length
+  const objjcFlags = {}
 
   for (let index = 0; index < count; ++index) {
-    let argument = args[index]
+    const argument = args[index]
 
-    if (argument.indexOf("-g") === 0)
-      objjcFlags.includeMethodFunctionNames = true
-    else if (argument.indexOf("-O") === 0) {
+    if (argument.indexOf('-g') === 0) { objjcFlags.includeMethodFunctionNames = true } else if (argument.indexOf('-O') === 0) {
       objjcFlags.compress = true // This is not used in the compiler option dictionary but we add it here as it is also done if compiling from command line.
       // FIXME: currently we are sending in '-O2' when we want InlineMsgSend. Here we only check if it is '-O...'.
       // Maybe we should have some other option for this
-      if (argument.length > 2)
-        objjcFlags.inlineMsgSendFunctions = true
-    }
-    // else if (argument.indexOf("-G") === 0)
-    // objjcFlags |= ObjJAcornCompiler.Flags.Generate;
-    else if (argument.indexOf("-T") === 0) {
+      if (argument.length > 2) { objjcFlags.inlineMsgSendFunctions = true }
+    } else if (argument.indexOf('-T') === 0) {
+      // else if (argument.indexOf("-G") === 0)
+      // objjcFlags |= ObjJAcornCompiler.Flags.Generate;
       objjcFlags.includeIvarTypeSignatures = false
       objjcFlags.includeMethodArgumentTypeSignatures = false
-    } else if (argument.indexOf("-S") === 0) {
+    } else if (argument.indexOf('-S') === 0) {
       objjcFlags.sourceMap = true
       objjcFlags.sourceMapIncludeSource = true
-    } else if (argument.indexOf("--include") === 0) {
-      let includeUrl = args[++index],
-          firstChar = includeUrl && includeUrl.charCodeAt(0)
+    } else if (argument.indexOf('--include') === 0) {
+      let includeUrl = args[++index]
+      const firstChar = includeUrl && includeUrl.charCodeAt(0)
 
       // Poor mans unquote
       if (firstChar === 34 || firstChar === 39) // '"', "'"
-        includeUrl = includeUrl.substring(1, includeUrl.length - 1);
+      { includeUrl = includeUrl.substring(1, includeUrl.length - 1) }
 
       (objjcFlags.includeFiles || (objjcFlags.includeFiles = [])).push(includeUrl)
-    } else if (argument.indexOf("--inline-msg-send") === 0) {
+    } else if (argument.indexOf('--inline-msg-send') === 0) {
       // This option is if you only want to inline message send functions
       objjcFlags.inlineMsgSendFunctions = true
-    }
     /*        else if (argument.indexOf("-I") === 0) {
                     var includeUrl = argument.substring(2),
                         firstChar = includeUrl && includeUrl.charCodeAt(0);
@@ -439,15 +418,15 @@ export function parseGccCompilerFlags(/* String */ compilerFlags) {
 
                     (objjcFlags.includeFiles || (objjcFlags.includeFiles = [])).push(includeUrl);
                 } */
-    else if (argument.indexOf("-D") === 0) {
-      let macroDefinition = argument.substring(2);
+    } else if (argument.indexOf('-D') === 0) {
+      const macroDefinition = argument.substring(2);
 
       (objjcFlags.macros || (objjcFlags.macros = [])).push(macroDefinition)
-    } else if (argument.indexOf("-W") === 0) {
+    } else if (argument.indexOf('-W') === 0) {
       // TODO: Check if the warning name is a valid one. Now we just grab what is written and set/remove it.
-      let isNo = argument.indexOf("no-", 2) === 2
-      var warningName = argument.substring(isNo ? 5 : 2)
-      let indexOfWarning = (objjcFlags.warnings || (objjcFlags.warnings = defaultOptions.warnings.slice())).findIndex(function(element) { return element.name === warningName })
+      const isNo = argument.indexOf('no-', 2) === 2
+      const warningName = argument.substring(isNo ? 5 : 2)
+      const indexOfWarning = (objjcFlags.warnings || (objjcFlags.warnings = defaultOptions.warnings.slice())).findIndex(function (element) { return element.name === warningName })
 
       if (isNo) {
         if (indexOfWarning !== -1) {
@@ -457,7 +436,7 @@ export function parseGccCompilerFlags(/* String */ compilerFlags) {
       } else {
         if (indexOfWarning === -1) {
           // Add if it does not exists
-          let theWarning = AllWarnings.find(function(element) { return element.name === warningName })
+          const theWarning = AllWarnings.find(function (element) { return element.name === warningName })
           if (theWarning) objjcFlags.warnings.push(theWarning)
         }
       }

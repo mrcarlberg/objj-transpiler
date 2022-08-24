@@ -4,109 +4,99 @@
 // classDef = {"className": aClassName, "superClass": superClass , "ivars": myIvars, "instanceMethods": instanceMethodDefs, "classMethods": classMethodDefs, "protocols": myProtocols};
 
 export class ClassDef {
-  constructor(isImplementationDeclaration, name, superClass, ivars, instanceMethods, classMethods, protocols) {
+  constructor (isImplementationDeclaration, name, superClass, ivars, instanceMethods, classMethods, protocols) {
     this.name = name
-    if (superClass)
-      this.superClass = superClass
-    if (ivars)
-      this.ivars = ivars
+    if (superClass) { this.superClass = superClass }
+    if (ivars) { this.ivars = ivars }
     if (isImplementationDeclaration) {
       this.instanceMethods = instanceMethods || Object.create(null)
       this.classMethods = classMethods || Object.create(null)
     }
-    if (protocols)
-      this.protocols = protocols
+    if (protocols) { this.protocols = protocols }
   }
 
-  addInstanceMethod(methodDef) {
+  addInstanceMethod (methodDef) {
     this.instanceMethods[methodDef.name] = methodDef
   }
 
-  addClassMethod(methodDef) {
+  addClassMethod (methodDef) {
     this.classMethods[methodDef.name] = methodDef
   }
 
-  listOfNotImplementedMethodsForProtocols(protocolDefs) {
-    let resultList = [],
-        instanceMethods = this.getInstanceMethods(),
-        classMethods = this.getClassMethods()
+  listOfNotImplementedMethodsForProtocols (protocolDefs) {
+    let resultList = []
+    const instanceMethods = this.getInstanceMethods()
+    const classMethods = this.getClassMethods()
 
     for (let i = 0, size = protocolDefs.length; i < size; i++) {
-      let protocolDef = protocolDefs[i],
-          protocolInstanceMethods = protocolDef.requiredInstanceMethods,
-          protocolClassMethods = protocolDef.requiredClassMethods,
-          inheritFromProtocols = protocolDef.protocols
+      const protocolDef = protocolDefs[i]
+      const protocolInstanceMethods = protocolDef.requiredInstanceMethods
+      const protocolClassMethods = protocolDef.requiredClassMethods
+      const inheritFromProtocols = protocolDef.protocols
 
-      if (protocolInstanceMethods) for (var methodName in protocolInstanceMethods) {
-        var methodDef = protocolInstanceMethods[methodName]
-
-        if (!instanceMethods[methodName])
-          resultList.push({methodDef, protocolDef})
+      if (protocolInstanceMethods) {
+        for (const methodName in protocolInstanceMethods) {
+          const methodDef = protocolInstanceMethods[methodName]
+          if (!instanceMethods[methodName]) resultList.push({ methodDef, protocolDef })
+        }
       }
 
-      if (protocolClassMethods) for (var methodName in protocolClassMethods) {
-        var methodDef = protocolClassMethods[methodName]
-
-        if (!classMethods[methodName])
-          resultList.push({methodDef, protocolDef})
+      if (protocolClassMethods) {
+        for (const methodName in protocolClassMethods) {
+          const methodDef = protocolClassMethods[methodName]
+          if (!classMethods[methodName]) resultList.push({ methodDef, protocolDef })
+        }
       }
 
-      if (inheritFromProtocols)
-        resultList = resultList.concat(this.listOfNotImplementedMethodsForProtocols(inheritFromProtocols))
+      if (inheritFromProtocols) { resultList = resultList.concat(this.listOfNotImplementedMethodsForProtocols(inheritFromProtocols)) }
     }
 
     return resultList
   }
 
-  getInstanceMethod(name) {
-    let instanceMethods = this.instanceMethods
+  getInstanceMethod (name) {
+    const instanceMethods = this.instanceMethods
 
     if (instanceMethods) {
-      let method = instanceMethods[name]
+      const method = instanceMethods[name]
 
-      if (method)
-        return method
+      if (method) { return method }
     }
 
-    let superClass = this.superClass
+    const superClass = this.superClass
 
-    if (superClass)
-      return superClass.getInstanceMethod(name)
+    if (superClass) { return superClass.getInstanceMethod(name) }
 
     return null
   }
 
-  getClassMethod(name) {
-    let classMethods = this.classMethods
+  getClassMethod (name) {
+    const classMethods = this.classMethods
     if (classMethods) {
-      let method = classMethods[name]
+      const method = classMethods[name]
 
-      if (method)
-        return method
+      if (method) { return method }
     }
 
-    let superClass = this.superClass
+    const superClass = this.superClass
 
-    if (superClass)
-      return superClass.getClassMethod(name)
+    if (superClass) { return superClass.getClassMethod(name) }
 
     return null
   }
 
   // Return a new Array with all instance methods
-  getInstanceMethods() {
-    let instanceMethods = this.instanceMethods
+  getInstanceMethods () {
+    const instanceMethods = this.instanceMethods
     if (instanceMethods) {
-      let superClass = this.superClass,
-          returnObject = Object.create(null)
+      const superClass = this.superClass
+      const returnObject = Object.create(null)
       if (superClass) {
-        let superClassMethods = superClass.getInstanceMethods()
-        for (var methodName in superClassMethods)
-          returnObject[methodName] = superClassMethods[methodName]
+        const superClassMethods = superClass.getInstanceMethods()
+        for (const methodName in superClassMethods) { returnObject[methodName] = superClassMethods[methodName] }
       }
 
-      for (var methodName in instanceMethods)
-        returnObject[methodName] = instanceMethods[methodName]
+      for (const methodName in instanceMethods) { returnObject[methodName] = instanceMethods[methodName] }
 
       return returnObject
     }
@@ -115,19 +105,17 @@ export class ClassDef {
   }
 
   // Return a new Array with all class methods
-  getClassMethods() {
-    let classMethods = this.classMethods
+  getClassMethods () {
+    const classMethods = this.classMethods
     if (classMethods) {
-      let superClass = this.superClass,
-          returnObject = Object.create(null)
+      const superClass = this.superClass
+      const returnObject = Object.create(null)
       if (superClass) {
-        let superClassMethods = superClass.getClassMethods()
-        for (var methodName in superClassMethods)
-          returnObject[methodName] = superClassMethods[methodName]
+        const superClassMethods = superClass.getClassMethods()
+        for (const methodName in superClassMethods) { returnObject[methodName] = superClassMethods[methodName] }
       }
 
-      for (var methodName in classMethods)
-        returnObject[methodName] = classMethods[methodName]
+      for (const methodName in classMethods) { returnObject[methodName] = classMethods[methodName] }
 
       return returnObject
     }

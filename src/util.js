@@ -1,3 +1,3 @@
-export function wordsRegexp(words) {
-  return new RegExp("^(?:" + words.replace(/ /g, "|") + ")$")
+export function wordsRegexp (words) {
+  return new RegExp('^(?:' + words.replace(/ /g, '|') + ')$')
 }

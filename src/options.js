@@ -1,4 +1,4 @@
-import {warningUnusedButSetVariable, warningShadowIvar, warningCreateGlobalInsideFunctionOrMethod, warningUnknownClassOrGlobal, warningUnknownIvarType} from "./warning.js"
+import { warningUnusedButSetVariable, warningShadowIvar, warningCreateGlobalInsideFunctionOrMethod, warningUnknownClassOrGlobal, warningUnknownIvarType } from './warning.js'
 
 // A optional argument can be given to further configure
 // the compiler. These options are recognized:
@@ -8,7 +8,7 @@ export const defaultOptions = {
   // Acorn options. For more information check objj-acorn.
   // We have a function here to create a new object every time we copy
   // the default options.
-  acornOptions: function() { return Object.create(null) },
+  acornOptions: function () { return Object.create(null) },
 
   // Turn on `sourceMap` generate a source map for the compiler file.
   sourceMap: false,
@@ -23,13 +23,13 @@ export const defaultOptions = {
   pass: 2,
 
   // Pass in class definitions. New class definitions in source file will be added here when compiling.
-  classDefs: function() { return Object.create(null) },
+  classDefs: function () { return Object.create(null) },
 
   // Pass in protocol definitions. New protocol definitions in source file will be added here when compiling.
-  protocolDefs: function() { return Object.create(null) },
+  protocolDefs: function () { return Object.create(null) },
 
   // Pass in typeDef definitions. New typeDef definitions in source file will be added here when compiling.
-  typeDefs: function() { return Object.create(null) },
+  typeDefs: function () { return Object.create(null) },
 
   // Turn off `generate` to make the compile copy the code from the source file (and replace needed parts)
   // instead of generate it from the AST tree. The preprocessor does not work if this is turn off as it alters
@@ -44,7 +44,7 @@ export const defaultOptions = {
   indentationSpaces: 4,
 
   // The type of indentation. Default is space. Can be changed to tab or any other string.
-  indentationType: " ",
+  indentationType: ' ',
 
   // There is a bug in Safari 2.0 that can't handle a named function declaration. See http://kangax.github.io/nfe/#safari-bug
   // Turn on `transformNamedFunctionDeclarationToAssignment` to make the compiler transform these.
@@ -77,15 +77,15 @@ export const defaultOptions = {
 }
 
 // We copy the options to a new object as we don't want to mess up incoming options when we start compiling.
-export function setupOptions(opts) {
-  let options = Object.create(null)
-  for (let opt in defaultOptions) {
+export function setupOptions (opts) {
+  const options = Object.create(null)
+  for (const opt in defaultOptions) {
     if (opts && Object.prototype.hasOwnProperty.call(opts, opt)) {
-      let incomingOpt = opts[opt]
-      options[opt] = typeof incomingOpt === "function" ? incomingOpt() : incomingOpt
-    } else if (defaultOptions.hasOwnProperty(opt)) {
-      let defaultOpt = defaultOptions[opt]
-      options[opt] = typeof defaultOpt === "function" ? defaultOpt() : defaultOpt
+      const incomingOpt = opts[opt]
+      options[opt] = typeof incomingOpt === 'function' ? incomingOpt() : incomingOpt
+    } else if (Object.prototype.hasOwnProperty.call(defaultOptions, opt)) {
+      const defaultOpt = defaultOptions[opt]
+      options[opt] = typeof defaultOpt === 'function' ? defaultOpt() : defaultOpt
     }
   }
   return options
