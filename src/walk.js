@@ -184,6 +184,16 @@ function nodePrecedence(node, subNode, right) {
   return nodePrecedence < subNodePrecedence || (nodePrecedence === subNodePrecedence && isLogicalBinary.test(nodeType) && ((nodeOperatorPrecedence = operatorPrecedence[node.operator]) < (subNodeOperatorPrecedence = operatorPrecedence[subNode.operator]) || (right && nodeOperatorPrecedence === subNodeOperatorPrecedence)))
 }
 
+// Used for arrow functions. Checks if the parameter list needs parentheses.
+function mustHaveParentheses(paramList) {
+  for (const param of paramList) {
+    if (param.type !== "Identifier") {
+      return true
+    }
+  }
+  return paramList.length > 1 || paramList.length === 0
+}
+
 let reservedIdentifiers = wordsRegexp("self _cmd __filename undefined localStorage arguments")
 let wordPrefixOperators = wordsRegexp("delete in instanceof new typeof void")
 let isLogicalBinary = wordsRegexp("LogicalExpression BinaryExpression")
@@ -1034,9 +1044,14 @@ pass2 = walk.make({
   },
   ArrowFunctionExpression: function(node, st, c) {
     let compiler = st.compiler,
-        buffer = compiler.jsBuffer
+        buffer = compiler.jsBuffer,
+        inner = new FunctionScope(st)
+    inner.isDecl = false
+    for (let i = 0; i < node.params.length; ++i)
+      inner.vars[node.params[i].name] = {type: "argument", node: node.params[i]}
     if (node.async) buffer.concat("async ")
-    buffer.concat("(")
+    let needParentheses = mustHaveParentheses(node.params)
+    if (needParentheses) buffer.concat("(")
     let isFirst = true
     for (const param of node.params) {
       if (isFirst) {
@@ -1046,15 +1061,23 @@ pass2 = walk.make({
       }
       c(param, st, "Pattern")
     }
-    buffer.concat(")")
+    if (needParentheses) buffer.concat(")")
     buffer.concat(" => ")
     if (node.expression) {
-      buffer.concat("(")
-      c(node.body, st, "Expression")
-      buffer.concat(")")
+      if ((node.body.type === "AssignmentExpression" && node.body.left.type === "ObjectPattern") || node.body.type === "FunctionExpression" || node.body.type === "ObjectExpression") {
+        surroundExpression(c)(node.body, inner, "Expression")
+      } else {
+        c(node.body, inner, "Expression")
+      }
     } else {
-      c(node.body, st, "BlockStatement")
+      inner.skipIndentation = true
+      inner.endOfScopeBody = true
+      st.compiler.indentation += st.compiler.indentStep
+      c(node.body, inner, "BlockStatement")
+      st.compiler.indentation = st.compiler.indentation.substring(st.compiler.indentationSize)
     }
+    inner.variablesNotReadWarnings()
+    inner.copyAddedSelfToIvarsToParent()
   },
   Identifier: function(node, st, c) {
     const compiler = st.compiler
