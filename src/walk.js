@@ -1,4 +1,5 @@
 import walk from "acorn-walk"
+import {getLineInfo} from "objj-parser"
 import {SourceNode, SourceMapConsumer} from "source-map"
 
 import {Scope, FunctionScope, BlockScope} from "./scope"
@@ -9,7 +10,6 @@ import {StringBuffer} from "./buffer"
 import {GlobalVariableMaybeWarning, createMessage, warningUnknownClassOrGlobal, warningCreateGlobalInsideFunctionOrMethod, warningShadowIvar, warningUnknownIvarType} from "./warning"
 import {wordsRegexp} from "./util"
 import {setupOptions} from "./options"
-import {getLineInfo} from "objj-parser"
 
 export let pass1, pass2
 
@@ -571,9 +571,16 @@ pass2 = walk.make({
       }
     }
     if (st.isDefaultExport && !decl) buffer.concat("(")
-    if (node.async) buffer.concat("async ")
-    if (!st.skipFunctionKeyword) buffer.concat("function", node)
-    if (node.generator) buffer.concat("*")
+    let prefix = []
+    if (st.methodPrefix?.length) {
+      prefix.push(...st.methodPrefix)
+    }
+    if (node.async) prefix.push("async")
+    if (!st.skipFunctionKeyword) {
+      prefix.push("function")
+    }
+    if (node.generator) prefix.push("*")
+    buffer.concat(prefix.join(" "))
     if (!compiler.transformNamedFunctionDeclarationToAssignment && id) {
       buffer.concat(" ")
       if (st.isComputed) buffer.concat("[")
@@ -701,45 +708,45 @@ pass2 = walk.make({
     buffer.concat("]")
   },
   ObjectExpression: function(node, st, c) {
-    let compiler = st.compiler,
-        properties = node.properties,
-        buffer = compiler.jsBuffer
+    const compiler = st.compiler
+    const buffer = compiler.jsBuffer
+
     buffer.concat("{", node)
     let isFirst = true
-    for (const prop of properties) {
+    for (const prop of node.properties) {
       if (!isFirst) {
         buffer.concat(", ")
       } else {
         isFirst = false
       }
-      if (prop.value?.type === "AssignmentPattern" && prop.shorthand) {
-        c(prop, st)
-      } else if (prop.type === "Property") {
-        if (prop.kind === "get" || prop.kind === "set" || prop.method) {
-          let s = prop.method ? "" : prop.kind
-          buffer.concat(s + " ")
-          prop.value.id = prop.key
-          st.isComputed = prop.computed
-          st.skipFunctionKeyword = true
-          c(prop.value, st, "Expression")
-          delete st.skipFunctionKeyword
-          delete st.isComputed
-        } else {
-          if (prop.computed) buffer.concat("[")
-          st.isPropertyKey = true
-          c(prop.key, st, "Expression")
-          delete st.isPropertyKey
-          if (prop.computed) buffer.concat("]")
-          if (!prop.shorthand) {
-            buffer.concat(": ")
-          }
-          if (!prop.shorthand) c(prop.value, st, "Expression")
-        }
-      } else {
-        c(prop, st)
-      }
+      c(prop, st)
     }
     buffer.concat("}")
+  },
+  Property: function(node, st, c) {
+    const compiler = st.compiler
+    const buffer = compiler.jsBuffer
+    if (node.value?.type === "AssignmentPattern" && node.shorthand) {
+      c(node.value, st, "AssignmentPattern")
+    } else if (node.kind === "get" || node.kind === "set" || node.method) {
+      buffer.concat((node.method ? "" : node.kind) + " ")
+      node.value.id = node.key
+      st.isComputed = node.computed
+      st.skipFunctionKeyword = true
+      c(node.value, st, "Expression")
+      delete st.skipFunctionKeyword
+      delete st.isComputed
+    } else {
+      if (node.computed) buffer.concat("[")
+      st.isPropertyKey = true
+      c(node.key, st, "Expression")
+      delete st.isPropertyKey
+      if (node.computed) buffer.concat("]")
+      if (!node.shorthand) {
+        buffer.concat(": ")
+      }
+      if (!node.shorthand) c(node.value, st, "Expression")
+    }
   },
   StaticBlock: function(node, st, c) {
     let compiler = st.compiler,
@@ -1218,7 +1225,7 @@ pass2 = walk.make({
       c(element, st)
       compiler.jsBuffer.concat("\n")
     }
-    compiler.jsBuffer.concat("}")
+    compiler.jsBuffer.concat("}\n")
   },
   PropertyDefinition: function(node, st, c) {
     let compiler = st.compiler,
@@ -1236,27 +1243,19 @@ pass2 = walk.make({
     buffer.concat(";")
   },
   MethodDefinition: function(node, st, c) {
-    let compiler = st.compiler,
-        buffer = compiler.jsBuffer
-    buffer.concat(st.compiler.indentation)
-    if (node.static) buffer.concat("static ")
-    if (node.value.async) buffer.concat("async ")
-    if (node.kind === "get") buffer.concat("get ")
-    if (node.kind === "set") buffer.concat("set ")
-    if (node.value.generator) buffer.concat("*")
-    if (node.computed) buffer.concat("[")
-    c(node.key, st)
-    if (node.computed) buffer.concat("]")
-    buffer.concat("(")
-    for (let i = 0; i < node.value.params.length; ++i) {
-      if (i)
-        buffer.concat(", ")
-      c(node.value.params[i], st, "Pattern")
-    }
-    buffer.concat(")")
-    st.compiler.indentation += st.compiler.indentStep
-    c(node.value.body, st)
-    st.compiler.indentation = st.compiler.indentation.substring(st.compiler.indentationSize)
+    let prefix = []
+    if (node.static) prefix.push("static")
+    if (node.kind === "get") prefix.push("get")
+    if (node.kind === "set") prefix.push("set")
+
+    node.value.id = node.key
+    st.skipFunctionKeyword = true
+    st.methodPrefix = prefix
+    if (node.computed) st.isComputed = true
+    c(node.value, st)
+    delete st.methodPrefix
+    st.isComputed = false
+    st.skipFunctionKeyword = false
   },
   PrivateIdentifier: function(node, st, c) {
     let compiler = st.compiler,
