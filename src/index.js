@@ -32,7 +32,7 @@ export function compileFileDependencies (/* String */ aString, /* CFURL */ aURL,
     The result is cached so we only need to make the calculation once.
  */
 export function numberOfLinesAtTopOfFunction () {
-  const f = new Function('x', 'return x;')
+  const f = new Function('x', 'return x;') // eslint-disable-line
   const fString = f.toString()
   const index = fString.indexOf('return x;')
   const firstPart = fString.substring(0, index)
