@@ -1,48 +1,75 @@
 {
-          "name": "objj-transpiler",
-          "description": "JavaScript (ECMAScript) and Objective-J compiler with preprocessor",
-          "homepage": "http://github.com/mrcarlberg/ObjJAcornCompiler",
-          "main": "ObjJAcornCompiler.js",
-          "version": "0.5.7",
-          "engines": {
-                    "node": ">=0.10.0"
-          },
-          "maintainers": [
-                    {
-                              "name": "Martin Carlberg",
-                              "email": "martin@carlberg.org",
-                              "web": "http://carlberg.org"
-                    }
-          ],
-          "repository": {
-                    "type": "git",
-                    "url": "http://github.com/mrcarlberg/ObjJAcornCompiler"
-          },
-          "licenses": [
-                    {
-                              "type": "MIT",
-                              "url": "http://raw.github.com/mrcarlberg/ObjJAcornCompiler/master/LICENSE"
-                    }
-          ],
-          "keywords": [
-                    "source",
-                    "source code",
-                    "JavaScript",
-                    "ECMAScript",
-                    "Objective-J",
-                    "preprocessor",
-                    "pre-processor",
-                    "pre processor",
-                    "processor",
-                    "utility",
-                    "beautifier",
-                    "formatter"
-          ],
-          "dependencies": {
-                    "objj-parser": ">=0.4.0",
-                    "source-map": "0.4.x"
-          },
-          "bin": {
-                    "objjc": "./bin/objjc"
-          }
+    "name": "objj-transpiler",
+    "description": "JavaScript (ECMAScript) and Objective-J compiler with preprocessor",
+    "homepage": "http://github.com/mrcarlberg/ObjJAcornCompiler",
+    "main": "dist/objj-transpiler.cjs",
+    "version": "1.0.0-1",
+    "engines": {
+        "node": ">=0.10.0"
+    },
+    "maintainers": [
+        {
+            "name": "Martin Carlberg",
+            "email": "martin@carlberg.org",
+            "web": "http://carlberg.org"
+        }
+    ],
+    "repository": {
+        "type": "git",
+        "url": "http://github.com/mrcarlberg/ObjJAcornCompiler"
+    },
+    "licenses": [
+        {
+            "type": "MIT",
+            "url": "http://raw.github.com/mrcarlberg/ObjJAcornCompiler/master/LICENSE"
+        }
+    ],
+    "keywords": [
+        "source",
+        "source code",
+        "JavaScript",
+        "ECMAScript",
+        "Objective-J",
+        "preprocessor",
+        "pre-processor",
+        "pre processor",
+        "processor",
+        "utility",
+        "beautifier",
+        "formatter"
+    ],
+    "dependencies": {
+        "acorn-walk": "8.2.0",
+        "objj-parser": "1.0.0-1",
+        "source-map": "0.4.x"
+    },
+    "devDependencies": {
+        "rollup": "^2.78.0",
+        "standard": "^17.0.0"
+    },
+    "scripts": {
+        "build": "rollup -c rollup.config.js"
+    },
+    "bin": {
+        "objjc": "./bin/objjc.js"
+    },
+    "type": "module",
+    "standard": {
+        "ignore": ["dist", "test", "rollup.config.js"],
+        "globals": [
+            "objj_getClass",
+            "objj_getTypeDef",
+            "objj_getProtocol",
+            "class_copyIvarList",
+            "class_getSuperclass",
+            "class_copyMethodList",
+            "class_copyProtocolList",
+            "class_copyobjj_getClass",
+            "typeDef_getName",
+            "protocol_getName",
+            "protocol_copyMethodDescriptionList",
+            "method_getName",
+            "method_getNameIvarList"
+        ]
+    }
 }
