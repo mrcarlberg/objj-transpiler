@@ -393,8 +393,9 @@ export function parseGccCompilerFlags (/* String */ compilerFlags) {
       const firstChar = includeUrl && includeUrl.charCodeAt(0)
 
       // Poor mans unquote
-      if (firstChar === 34 || firstChar === 39) // '"', "'"
-      { includeUrl = includeUrl.substring(1, includeUrl.length - 1) }
+      if (firstChar === 34 || firstChar === 39) { // '"', "'"
+        includeUrl = includeUrl.substring(1, includeUrl.length - 1)
+      }
 
       (objjcFlags.includeFiles || (objjcFlags.includeFiles = [])).push(includeUrl)
     } else if (argument.indexOf('--inline-msg-send') === 0) {
