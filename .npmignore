@@ -1,0 +1,6 @@
+.tern-*
+/rollup.config.*
+/src
+/test
+/small-test
+.vscode
