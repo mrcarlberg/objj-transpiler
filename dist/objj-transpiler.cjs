@@ -1700,7 +1700,7 @@
           if (lvarScope) { lvarScope.assignmentToSelf = true; }
         }
       }
-      (nodePrecedence(node, nodeLeft) ? surroundExpression(c) : c)(nodeLeft, st, 'Pattern');
+      (nodePrecedence(node, nodeLeft) ? surroundExpression(c) : c)(nodeLeft, st, 'Expression');
       buffer.concat(' ');
       buffer.concat(node.operator);
       buffer.concat(' ');
