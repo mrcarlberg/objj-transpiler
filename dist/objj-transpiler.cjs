@@ -1362,13 +1362,46 @@
       inner.copyAddedSelfToIvarsToParent();
     },
     ObjectPattern: function (node, st, c) {
-      c(node, st, 'ObjectExpression');
+      const compiler = st.compiler;
+      const buffer = compiler.jsBuffer;
+
+      buffer.concat('{', node);
+      let isFirst = true;
+      for (const prop of node.properties) {
+        if (!isFirst) {
+          buffer.concat(', ');
+        } else {
+          isFirst = false;
+        }
+        if (prop.type === 'Property') {
+          if (prop.shorthand && prop.value.type === 'AssignmentPattern') {
+            c(prop.value, st);
+          } else {
+            if (prop.computed) buffer.concat('[');
+            c(prop.key, st, 'Pattern');
+            if (prop.computed) buffer.concat(']');
+            if (!prop.shorthand) {
+              buffer.concat(': ');
+              c(prop.value, st, 'Pattern');
+            }
+          }
+        } else {
+          c(prop, st);
+        }
+      }
+      buffer.concat('}');
     },
     RestElement: function (node, st, c) {
       const compiler = st.compiler;
       const buffer = compiler.jsBuffer;
       buffer.concat('...');
-      c(node.argument, st);
+      c(node.argument, st, 'Pattern');
+    },
+    RestPattern: function (node, st, c) {
+      const compiler = st.compiler;
+      const buffer = compiler.jsBuffer;
+      buffer.concat('...');
+      c(node.argument, st, 'Pattern');
     },
     EmptyStatement: function (node, st, c) {
       const compiler = st.compiler;
@@ -1376,6 +1409,23 @@
       buffer.concat(';\n');
     },
     VariableDeclaration: function (node, st, c) {
+      const identifiersFromIdentifier = (id, currentResult) => {
+        switch (id.type) {
+          case "Identifier":
+            currentResult.push(id);
+            break
+          case "ObjectPattern":
+            currentResult.concat(id.properties.reduce( (result, prop) => result.concat(identifiersFromIdentifier(prop.type === 'RestElement' ? prop.argument : prop.value, currentResult)), []));
+            break
+          case "ArrayPattern":
+            currentResult.concat(id.elements.reduce( (result, element) => element != null ? result.concat(identifiersFromIdentifier(element, currentResult)) : result, []));
+            break
+          case "AssignmentPattern":
+            currentResult.concat(identifiersFromIdentifier(id.left, currentResult));
+            break
+        }
+        return currentResult
+      };
       const compiler = st.compiler;
       const buffer = compiler.jsBuffer;
       const isVar = node.kind === 'var';
@@ -1385,23 +1435,26 @@
       buffer.concat(node.kind + ' ', node);
       let isFirst = true;
       for (const decl of node.declarations) {
-        const identifier = decl.id.name;
-        const possibleHoistedVariable = isVar && varScope.possibleHoistedVariables?.[identifier];
-        const variableDeclaration = { type: node.kind, node: decl.id, isRead: (possibleHoistedVariable ? possibleHoistedVariable.isRead : 0) };
+        let identifiers = identifiersFromIdentifier(decl.id, []);
 
-        // Make sure we count the access for this varaible if it is hoisted.
-        // Check if this variable has already been accessed above this declaration
-        if (possibleHoistedVariable) {
-          // 'variableDeclaration' is already marked as read. This was done by adding the already read amount above.
+        if (identifiers) for (const identifierNode of identifiers) {
+          const possibleHoistedVariable = isVar && varScope.possibleHoistedVariables?.[identifierNode.name];
+          const variableDeclaration = { type: node.kind, node: identifierNode, isRead: (possibleHoistedVariable ? possibleHoistedVariable.isRead : 0) };
 
-          // Substract the same amount from possible local variable higher up in the hierarchy that is shadowed by this declaration
-          if (possibleHoistedVariable.variable) {
-            possibleHoistedVariable.variable.isRead -= possibleHoistedVariable.isRead;
+          // Make sure we count the access for this varaible if it is hoisted.
+          // Check if this variable has already been accessed above this declaration
+          if (possibleHoistedVariable) {
+            // 'variableDeclaration' is already marked as read. This was done by adding the already read amount above.
+
+            // Substract the same amount from possible local variable higher up in the hierarchy that is shadowed by this declaration
+            if (possibleHoistedVariable.variable) {
+              possibleHoistedVariable.variable.isRead -= possibleHoistedVariable.isRead;
+            }
+            // Remove it as we don't need to care about this variable anymore.
+            varScope.possibleHoistedVariables[identifierNode.name] = null;
           }
-          // Remove it as we don't need to care about this variable anymore.
-          varScope.possibleHoistedVariables[identifier] = null;
+          varScope.vars[identifierNode.name] = variableDeclaration;
         }
-        varScope.vars[identifier] = variableDeclaration;
 
         if (!isFirst) {
           if (st.isFor) { buffer.concat(', '); } else {
@@ -1420,18 +1473,20 @@
         // Here we check back if a ivar with the same name exists and if we have prefixed 'self.' on previous uses.
         // If this is the case we have to remove the prefixes and issue a warning that the variable hides the ivar.
         if (st.addedSelfToIvars) {
-          const addedSelfToIvar = st.addedSelfToIvars[identifier];
-          if (addedSelfToIvar) {
-            const size = addedSelfToIvar.length;
-            for (let i = 0; i < size; i++) {
-              const dict = addedSelfToIvar[i];
-              buffer.removeAtIndex(dict.index);
-              if (compiler.options.warnings.includes(warningShadowIvar)) compiler.addWarning(createMessage("Local declaration of '" + identifier + "' hides instance variable", dict.node, compiler.source));
+          if (identifiers) for (const identifierNode of identifiers) {
+            const addedSelfToIvar = st.addedSelfToIvars[identifierNode.name];
+            if (addedSelfToIvar) {
+              const size = addedSelfToIvar.length;
+              for (let i = 0; i < size; i++) {
+                const dict = addedSelfToIvar[i];
+                buffer.removeAtIndex(dict.index);
+                if (compiler.options.warnings.includes(warningShadowIvar)) compiler.addWarning(createMessage("Local declaration of '" + identifierNode.name + "' hides instance variable", dict.node, compiler.source));
+              }
+              // Add a read mark to the local variable for each time it is used.
+              variableDeclaration.isRead += size;
+              // Remove the variable from list of instance variable uses.
+              st.addedSelfToIvars[identifierNode.name] = [];
             }
-            // Add a read mark to the local variable for each time it is used.
-            variableDeclaration.isRead += size;
-            // Remove the variable from list of instance variable uses.
-            st.addedSelfToIvars[identifier] = [];
           }
         }
         if (isFirst) isFirst = false;
@@ -1645,7 +1700,7 @@
           if (lvarScope) { lvarScope.assignmentToSelf = true; }
         }
       }
-      (nodePrecedence(node, nodeLeft) ? surroundExpression(c) : c)(nodeLeft, st, 'Expression');
+      (nodePrecedence(node, nodeLeft) ? surroundExpression(c) : c)(nodeLeft, st, 'Pattern');
       buffer.concat(' ');
       buffer.concat(node.operator);
       buffer.concat(' ');
@@ -1672,9 +1727,14 @@
         } else {
           isFirst = false;
         }
-        if (element != null) c(element, st);
+        if (element != null) c(element, st, "Pattern");
       }
       buffer.concat(']');
+    },
+    VariablePattern: function (node, st, c) {
+      const compiler = st.compiler;
+      const buffer = compiler.jsBuffer;
+      buffer.concat(node.name);
     },
     TemplateLiteral: function (node, st, c) {
       const compiler = st.compiler;

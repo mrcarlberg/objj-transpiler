@@ -29,7 +29,6 @@
   require("./tests-preprocess.js");
   require("./tests-objj.js");
   var objjParser = require("objj-parser")
-  var objjParserLoose = require("objj-parser-loose")
 
   var htmlLog = typeof document === "object" && document.getElementById('log');
   var htmlGroup = htmlLog;
@@ -70,16 +69,6 @@
     Normal: {
       config: {
         parse: objjParser.parse
-      }
-    },
-    Loose: {
-      config: {
-        parse: objjParserLoose.parse,
-        loose: true,
-        filter: function (test) {
-          var opts = test.options || {};
-          return opts.loose !== false;
-        }
       }
     }
   };
