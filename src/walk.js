@@ -1214,7 +1214,10 @@ export const pass2 = walk.make({
     const buffer = st.compiler.jsBuffer
     if (node.type === 'ClassExpression') buffer.concat('(')
     buffer.concat('class ')
-    if (node.id) c(node.id, st)
+    if (node.id) {
+      st.vars[node.id.name] = { type: 'JSClass', node: node }
+      c(node.id, st)
+    }
     if (node.superClass) {
       buffer.concat(' extends ')
       c(node.superClass, st)
