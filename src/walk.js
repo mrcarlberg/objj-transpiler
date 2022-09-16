@@ -539,7 +539,7 @@ export const pass2 = walk.make({
     if (id) {
       const name = id.name;
       (decl ? st : inner).vars[name] = { type: decl ? 'function' : 'function name', node: id }
-      if (compiler.transformNamedFunctionDeclarationToAssignment) {
+      if (!st.skipFunctionKeyword && compiler.transformNamedFunctionDeclarationToAssignment) {
         buffer.concat(name)
         buffer.concat(' = ')
       }
@@ -555,7 +555,7 @@ export const pass2 = walk.make({
     }
     if (node.generator) prefix.push('*')
     buffer.concat(prefix.join(' '))
-    if (!compiler.transformNamedFunctionDeclarationToAssignment && id) {
+    if ((st.skipFunctionKeyword || !compiler.transformNamedFunctionDeclarationToAssignment) && id) {
       buffer.concat(' ')
       if (st.isComputed) buffer.concat('[')
       c(id, st)
