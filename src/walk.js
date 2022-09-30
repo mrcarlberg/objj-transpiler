@@ -701,6 +701,7 @@ export const pass2 = walk.make({
               if (compiler.options.warnings.includes(warningShadowIvar)) compiler.addWarning(createMessage("Local declaration of '" + identifierNode.name + "' hides instance variable", dict.node, compiler.source))
             }
             // Add a read mark to the local variable for each time it is used.
+            const variableDeclaration = varScope.vars[identifierNode.name];
             variableDeclaration.isRead += size
             // Remove the variable from list of instance variable uses.
             st.addedSelfToIvars[identifierNode.name] = []

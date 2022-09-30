@@ -1321,7 +1321,7 @@
       if (id) {
         const name = id.name;
         (decl ? st : inner).vars[name] = { type: decl ? 'function' : 'function name', node: id };
-        if (compiler.transformNamedFunctionDeclarationToAssignment) {
+        if (!st.skipFunctionKeyword && compiler.transformNamedFunctionDeclarationToAssignment) {
           buffer.concat(name);
           buffer.concat(' = ');
         }
@@ -1337,7 +1337,7 @@
       }
       if (node.generator) prefix.push('*');
       buffer.concat(prefix.join(' '));
-      if (!compiler.transformNamedFunctionDeclarationToAssignment && id) {
+      if ((st.skipFunctionKeyword || !compiler.transformNamedFunctionDeclarationToAssignment) && id) {
         buffer.concat(' ');
         if (st.isComputed) buffer.concat('[');
         c(id, st);
@@ -1483,6 +1483,7 @@
                 if (compiler.options.warnings.includes(warningShadowIvar)) compiler.addWarning(createMessage("Local declaration of '" + identifierNode.name + "' hides instance variable", dict.node, compiler.source));
               }
               // Add a read mark to the local variable for each time it is used.
+              const variableDeclaration = varScope.vars[identifierNode.name];
               variableDeclaration.isRead += size;
               // Remove the variable from list of instance variable uses.
               st.addedSelfToIvars[identifierNode.name] = [];
@@ -1991,7 +1992,10 @@
       const buffer = st.compiler.jsBuffer;
       if (node.type === 'ClassExpression') buffer.concat('(');
       buffer.concat('class ');
-      if (node.id) c(node.id, st);
+      if (node.id) {
+        st.vars[node.id.name] = { type: 'JSClass', node: node };
+        c(node.id, st);
+      }
       if (node.superClass) {
         buffer.concat(' extends ');
         c(node.superClass, st);
