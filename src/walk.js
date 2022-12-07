@@ -1990,7 +1990,7 @@ export const pass2 = walk.make({
     compiler.jsBuffer.concat('"), ')
 
     if (node.body) {
-      if (node.returntype && node.returntype.async) { compiler.jsBuffer.concat('async ') }
+      if (node.async) { compiler.jsBuffer.concat('async ') }
       compiler.jsBuffer.concat('function')
 
       if (compiler.options.includeMethodFunctionNames) {
