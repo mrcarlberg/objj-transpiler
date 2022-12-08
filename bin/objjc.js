@@ -4,7 +4,7 @@ import path from 'path'
 import fs from 'fs'
 import { compile } from '../dist/objj-transpiler.cjs'
 
-let infile; let compiled; const options = {}; const acornOptions = {}; let silent = false; let code = true; let map = false; let ast = false; let output; let outputFilename
+let infile; let compiled; const options = {}; const acornOptions = {ecmaVersion: 2022}; let silent = false; let code = true; let map = false; let ast = false; let output; let outputFilename
 
 // TODO: Fix options
 function help (status) {
