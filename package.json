@@ -3,7 +3,7 @@
     "description": "JavaScript (ECMAScript) and Objective-J compiler with preprocessor",
     "homepage": "http://github.com/mrcarlberg/ObjJAcornCompiler",
     "main": "dist/objj-transpiler.cjs",
-    "version": "1.0.0-8",
+    "version": "1.0.0-9",
     "engines": {
         "node": ">=0.10.0"
     },

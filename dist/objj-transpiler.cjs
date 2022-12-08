@@ -76,15 +76,16 @@
   function createMessage (/* String */ aMessage, /* SpiderMonkey AST node */ node, /* String */ code) {
     const message = {};
     const { lineStart, lineEnd } = getLineOffsets(code, node.start);
-    const { line, column } = objjParser__namespace.getLineInfo(code, node.start);
+    const loc = objjParser__namespace.getLineInfo(code, node.start);
+    message.loc = loc;
     message.lineStart = lineStart;
     message.lineEnd = lineEnd;
-    message.line = line;
-    message.column = column;
+    //message.line = line
+    //message.column = column
     message.message = aMessage;
     // As a SyntaxError object can't change the property 'line' we also set the property 'messageOnLine'
-    message.messageOnLine = message.line;
-    message.messageOnColumn = message.column;
+    message.messageOnLine = loc.line;
+    message.messageOnColumn = loc.column;
     message.messageForNode = node;
     message.messageType = 'WARNING';
     message.messageForLine = code.substring(message.lineStart, message.lineEnd);
@@ -2767,7 +2768,7 @@
       compiler.jsBuffer.concat('"), ');
 
       if (node.body) {
-        if (node.returntype && node.returntype.async) { compiler.jsBuffer.concat('async '); }
+        if (node.async) { compiler.jsBuffer.concat('async '); }
         compiler.jsBuffer.concat('function');
 
         if (compiler.options.includeMethodFunctionNames) {
@@ -3155,9 +3156,8 @@
         this.tokens = objjParser__namespace.parse(aString, options.acornOptions);
         this.compile(this.tokens, new Scope(null, { compiler: this }), this.pass === 2 ? pass2 : pass1);
       } catch (e) {
-        if (e.lineStart != null) {
-          e.messageForLine = aString.substring(e.lineStart, e.lineEnd);
-        }
+        const { lineStart, lineEnd } = getLineOffsets(this.source, e.pos);
+        e.messageForLine = aString.substring(lineStart, lineEnd);
         this.addWarning(e);
         return
       }
@@ -3351,20 +3351,19 @@
       if (!message.endsWith('\n')) message += '\n';
       if (line) {
         // Add spaces all the way to the column with the error/warning and mark it with a '^'
-        message += (new Array((aMessage.messageOnColumn || 0) + 1)).join(' ');
+        message += (new Array((aMessage.loc.column || 0) + 1)).join(' ');
         message += (new Array(Math.min(1, line.length || 1) + 1)).join('^') + '\n';
       }
-      message += (aMessage.messageType || 'ERROR') + ' line ' + (aMessage.messageOnLine || aMessage.line) + ' in ' + this.URL + ':' + aMessage.messageOnLine + ': ' + aMessage.message;
+      message += (aMessage.messageType || 'ERROR') + ' line ' + (aMessage.loc.line || aMessage.line) + ' in ' + this.URL + ':' + aMessage.loc.line + ': ' + aMessage.message;
 
       return message
     }
 
     error_message (errorMessage, node) {
-      const pos = objjParser__namespace.getLineInfo(this.source, node.start);
+      const loc = objjParser__namespace.getLineInfo(this.source, node.start);
       const syntaxError = new SyntaxError(errorMessage);
 
-      syntaxError.messageOnLine = pos.line;
-      syntaxError.messageOnColumn = pos.column;
+      syntaxError.loc = loc;
       syntaxError.path = this.URL;
       syntaxError.messageForNode = node;
       syntaxError.messageType = 'ERROR';
