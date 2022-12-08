@@ -24,7 +24,7 @@ import { pass2, pass1 } from './walk.js'
 import { TypeDef, MethodDef } from './definition.js'
 import { ClassDef } from './class-def.js'
 import { ProtocolDef } from './protocol.js'
-import { AllWarnings } from './warning.js'
+import { AllWarnings, getLineOffsets } from './warning.js'
 
 export const version = '0.3.7'
 
@@ -80,9 +80,8 @@ export class ObjJAcornCompiler {
       this.tokens = objjParser.parse(aString, options.acornOptions)
       this.compile(this.tokens, new Scope(null, { compiler: this }), this.pass === 2 ? pass2 : pass1)
     } catch (e) {
-      if (e.lineStart != null) {
-        e.messageForLine = aString.substring(e.lineStart, e.lineEnd)
-      }
+      const { lineStart, lineEnd } = getLineOffsets(this.source, e.pos)
+      e.messageForLine = aString.substring(lineStart, lineEnd)
       this.addWarning(e)
       return
     }
@@ -276,20 +275,19 @@ export class ObjJAcornCompiler {
     if (!message.endsWith('\n')) message += '\n'
     if (line) {
       // Add spaces all the way to the column with the error/warning and mark it with a '^'
-      message += (new Array((aMessage.messageOnColumn || 0) + 1)).join(' ')
+      message += (new Array((aMessage.loc.column || 0) + 1)).join(' ')
       message += (new Array(Math.min(1, line.length || 1) + 1)).join('^') + '\n'
     }
-    message += (aMessage.messageType || 'ERROR') + ' line ' + (aMessage.messageOnLine || aMessage.line) + ' in ' + this.URL + ':' + aMessage.messageOnLine + ': ' + aMessage.message
+    message += (aMessage.messageType || 'ERROR') + ' line ' + (aMessage.loc.line || aMessage.line) + ' in ' + this.URL + ':' + aMessage.loc.line + ': ' + aMessage.message
 
     return message
   }
 
   error_message (errorMessage, node) {
-    const pos = objjParser.getLineInfo(this.source, node.start)
+    const loc = objjParser.getLineInfo(this.source, node.start)
     const syntaxError = new SyntaxError(errorMessage)
 
-    syntaxError.messageOnLine = pos.line
-    syntaxError.messageOnColumn = pos.column
+    syntaxError.loc = loc
     syntaxError.path = this.URL
     syntaxError.messageForNode = node
     syntaxError.messageType = 'ERROR'

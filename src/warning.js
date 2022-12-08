@@ -27,7 +27,7 @@ export const warningUnknownClassOrGlobal = { name: 'unknown-class-or-global' }
 export const warningUnknownIvarType = { name: 'unknown-ivar-type' }
 export const AllWarnings = [warningUnusedButSetVariable, warningShadowIvar, warningCreateGlobalInsideFunctionOrMethod, warningUnknownClassOrGlobal, warningUnknownIvarType]
 
-function getLineOffsets (code, offset) {
+export function getLineOffsets (code, offset) {
   let lineEnd = offset
   while (lineEnd < code.length) {
     if (objjParser.isNewLine(code.charCodeAt(lineEnd))) {
@@ -49,15 +49,16 @@ function getLineOffsets (code, offset) {
 export function createMessage (/* String */ aMessage, /* SpiderMonkey AST node */ node, /* String */ code) {
   const message = {}
   const { lineStart, lineEnd } = getLineOffsets(code, node.start)
-  const { line, column } = objjParser.getLineInfo(code, node.start)
+  const loc = objjParser.getLineInfo(code, node.start)
+  message.loc = loc
   message.lineStart = lineStart
   message.lineEnd = lineEnd
-  message.line = line
-  message.column = column
+  //message.line = line
+  //message.column = column
   message.message = aMessage
   // As a SyntaxError object can't change the property 'line' we also set the property 'messageOnLine'
-  message.messageOnLine = message.line
-  message.messageOnColumn = message.column
+  message.messageOnLine = loc.line
+  message.messageOnColumn = loc.column
   message.messageForNode = node
   message.messageType = 'WARNING'
   message.messageForLine = code.substring(message.lineStart, message.lineEnd)
