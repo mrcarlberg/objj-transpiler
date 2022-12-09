@@ -278,20 +278,21 @@ export class ObjJAcornCompiler {
       message += (new Array((aMessage.loc.column || 0) + 1)).join(' ')
       message += (new Array(Math.min(1, line.length || 1) + 1)).join('^') + '\n'
     }
-    message += (aMessage.messageType || 'ERROR') + ' line ' + (aMessage.loc.line || aMessage.line) + ' in ' + this.URL + ':' + aMessage.loc.line + ': ' + aMessage.message
+    message += (aMessage.messageType || 'ERROR') + ' line ' + (aMessage.loc?.line || aMessage.line) + ' in ' + this.URL + (aMessage.loc ? ':' + aMessage.loc.line : "") + ': ' + aMessage.message
 
     return message
   }
 
   error_message (errorMessage, node) {
     const loc = objjParser.getLineInfo(this.source, node.start)
+    const { lineStart, lineEnd } = getLineOffsets(this.source, node.start)
     const syntaxError = new SyntaxError(errorMessage)
 
     syntaxError.loc = loc
     syntaxError.path = this.URL
     syntaxError.messageForNode = node
     syntaxError.messageType = 'ERROR'
-    syntaxError.messageForLine = this.source.substring(pos.lineStart, pos.lineEnd)
+    syntaxError.messageForLine = this.source.substring(lineStart, lineEnd)
 
     return syntaxError
   }
